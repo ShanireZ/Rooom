@@ -254,6 +254,17 @@ The app was not running during the survey, so only files were seen.
   conversation, beside `conversation_summaries.db`, `annotations/<id>.pbtxt`
   and a `daemon/` folder. `~/.gemini/config/mcp_config.json` has an
   `mcpServers` key, and `~/.gemini/config/plugins/` exists.
+- **A-4. How this version announces its local service.** With no window
+  open, three `Antigravity.exe` processes ran, none of them listening on a
+  loopback port, and there was no `language_server.exe` process, which is
+  what the reference looks for. `~/.gemini/antigravity/daemon/` held eight
+  files named `hub_<number>.json`, each with the keys `pid`, `httpsPort`,
+  `httpPort`, `lsVersion` and `csrfToken`. Every `pid` in them had ended.
+  So this version may announce its service through a file; whether a live
+  one appears when a window is open is the next thing to observe. The token
+  values were never read out.
+- **A-5. Plugins.** `agy plugin` lists `install`, `import` ("from gemini or
+  claude"), `enable`, `disable` and `validate`. Not tried.
 - **A-2. Command line.** `agy --help` lists `--conversation <id>`,
   `--continue`, `--print`, and a `plugin` subcommand. None was run.
 
@@ -306,8 +317,12 @@ What the next experiments start from. Paths are in the reference repository.
 | Codex: how do words get in without interrupting? | The request `thread/queue/add` to a short-lived `codex app-server`; the app that has the thread open sends the item when the thread is idle. | `src/crates/platform/src/delivery/codex/mod.rs` |
 | Codex: when does a hook run? | Only after the user allowed its exact command in Codex; until then Codex skips it silently. | `src/crates/agents/src/codex/hooks.rs` |
 | Antigravity: where do permission requests come from? | The app's own loopback service, found from the `language_server.exe` and `agy.exe` processes of the same user and their listening ports. The process command line can hold a credential and is never logged. | `src/crates/platform/src/clients/antigravity/service.rs`, `os/windows/antigravity.rs`, `scripts/windows/antigravity-processes.ps1` |
+| Antigravity: how is the local service called? | An HTTP POST to `127.0.0.1` on the service's port, path `/exa.language_server_pb.LanguageServerService/<Method>`, JSON body, with the credential in a request header. A `GetUserStatus` call is the handshake that proves an endpoint. | `src/crates/platform/src/clients/antigravity/service.rs` |
+| Antigravity: which calls does it use? | `GetAllCascadeTrajectories` (its `waitingSteps` are the pending permissions), `GetCascadeTrajectory`, `HandleCascadeUserInteraction` (answer), `SendUserCascadeMessage` (words), `StartCascade`, `CancelCascadeInvocation`. | `src/crates/platform/src/clients/antigravity/`, `delivery/antigravity/` |
 | Antigravity: where are turns and replies? | `brain/<id>/.system_generated/logs/transcript.jsonl`; a turn starts at each `USER_INPUT` step. | `src/crates/agents/src/antigravity/transcript.rs` |
 | DeepSeek Harness: how are requests and words carried? | One plugin file loaded through a marked block in `cordis.patch.yml`, sharing a folder with the app: check-ins, prompts, and `asks/<id>.json` answered by `asks/<id>.answer`, first answer wins. | `src/crates/platform/src/deepseek_plugin/`, `clients/deepseek/patch.rs` |
+| DeepSeek Harness: what does the plugin look like? | One JavaScript module exporting a name, the services it needs and an `apply(ctx, config)` function. It listens to `agent/created`, `agent/disposed`, `tools/pre-execute`, `tools/execute` and `tools/result`, and queues words through the session's controller. | `src/crates/platform/src/deepseek_plugin/agent-hud.mjs` |
+| DeepSeek Harness: what can a plugin break? | An error that escapes one of its timers or promises stops the whole Harness host, the desktop app's too, and the app loads the file again at every launch. Every callback has to catch its own errors. | the same file's header |
 | DeepSeek Harness: what must never happen to its patch file? | It must stay a top-level list; an empty or comments-only file stops every profile from starting. | `src/crates/platform/src/clients/deepseek/patch.rs` |
 
 Two of this machine's observations agree with it: the pipe `codex-ipc`
@@ -328,5 +343,8 @@ Rooom does not do it by itself.
 3. **Codex.** Words done (X-5), requests done (X-8). Still to do: cancel a
    queued message, interrupt a turn and start a thread, through the methods
    of X-6.
-4. **Antigravity and DeepSeek Harness.** Start each app with a test
-   conversation open, so their live surfaces can be read.
+4. **Antigravity.** Open the app with a test conversation, so its live
+   service can be found and read.
+5. **DeepSeek Harness.** Its experiment loads a plugin into the owner's
+   Harness through its patch file. A mistake there can stop Harness from
+   starting, so it waits for a written recovery plan and the owner's word.
