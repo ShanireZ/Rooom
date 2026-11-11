@@ -41,11 +41,14 @@ The two rows in bold are the ones D-037 judges a client by.
 | Replies can be read | observed (C-2) | observed (X-2) | observed (A-1) | observed (D-1) |
 | The permission mode can be read | observed (C-3) | observed (X-3) | not tried | observed (D-2) |
 | **Requests reach Rooom** | observed (C-6) | not tried | not tried | not tried |
-| **Rooom's words reach the session** | not tried | not tried | not tried | not tried |
+| **Rooom's words reach the session** | observed (C-9) | not tried | not tried | not tried |
 | An untaken message can be cancelled | not tried | not tried | not tried | not tried |
-| A running turn can be interrupted | observed, at a permission boundary only (C-7) | not tried | not tried | not tried |
+| A running turn can be interrupted | observed (C-10); also at a permission boundary (C-7) | not tried | not tried | not tried |
 | A new session can be started | not tried | not tried | not tried | not tried |
 | The sending session can be named for MCP | not tried | not tried | not tried | not tried |
+
+D-037 so far: the Claude desktop app has both of its rows observed and stays
+in v1. The other three are undecided.
 
 ## Across clients
 
@@ -117,8 +120,8 @@ The two rows in bold are the ones D-037 judges a client by.
 
   A tool call that needed no permission, made in the same turn, did not
   start the helper.
-- **C-7. Interrupting.** Call 5 above is the only interruption observed: it
-  works when the session is waiting on a permission request, and only then.
+- **C-7. Interrupting through the hook.** Call 5 above works when the session
+  is waiting on a permission request, and only then. C-10 is the general way.
 - **Not yet tried for Claude requests.** The same entry in the user's own
   settings file. An allow that adds a rule for the session only (D-035).
   Questions and plans, which the reference also receives through this hook.
@@ -127,6 +130,31 @@ The two rows in bold are the ones D-037 judges a client by.
   helper allowed. So while Rooom holds a request the client's own card is
   live too, which is what the "one place answers" rule assumes. Seen by the
   owner on screen, not by command.
+
+- **C-9. Words reach a session through a plugin module.** A test module with
+  hooks on `session.start`, `turn.start` and `turn.complete` polled a
+  folder once a second. A message left there as a file was claimed within a
+  second (state "taken"), waited while a turn was running, and entered as a
+  turn of its own when the session went idle (state "started", 21 s later).
+  The model receives it framed as "The <plugin> plugin sent a message:", so
+  it is not mistaken for the owner's words. A second message behaved the
+  same. The id the module reads from the session equals the session record's
+  file name and the registry's `sessionId`.
+- **C-10. A plugin module can cancel the running turn.** The module kept the
+  id its `turn.start` hook was given. When a request file appeared while a
+  shell command was running, it called the turn-abort method with that id:
+  the turn ended 0.4 s after the request was written, `turn.complete`
+  reported the reason "aborted", and the next queued message started 0.2 s
+  later. The shell command itself was not killed: the session handed it to
+  the background and it ran on to its end. So this stops the turn, and a
+  command already started may outlive it.
+- **C-11. How the module was loaded.** As a development module written by
+  the session itself and picked up by its hot reloading. Claude Code's
+  `plugin validate` command accepted it and listed its hooks and calls. How
+  an owner installs such a plugin for every session is not tried.
+- **C-12. What the module cannot do.** Its file access reads, writes, lists
+  and checks existence; it has no delete. A delivery file therefore has to be
+  removed by Rooom once the module marks it taken (D-036).
 
 ### Codex Desktop
 
@@ -222,7 +250,9 @@ What the next experiments start from. Paths are in the reference repository.
 
 Two of this machine's observations agree with it: the pipe `codex-ipc`
 exists while Codex Desktop runs, and Antigravity's transcripts are where it
-says. One adds to it: this version of Harness compresses its session files.
+says. Two add to it: this version of Harness compresses its session files,
+and Claude Code's plugin modules can cancel a running turn (C-10), which the
+reference does not use.
 
 ## Needs the owner's hand
 
@@ -231,8 +261,8 @@ Rooom does not do it by itself.
 
 1. **Claude, requests.** Done for a project-level entry (C-6). Still to do
    with the owner: the same entry in the user's own settings file.
-2. **Claude, words.** Install a plugin whose module submits a prompt left in
-   a folder.
+2. **Claude, words.** Done with a development module (C-9, C-10). Still to
+   do with the owner: installing a plugin for every session.
 3. **Codex, words.** Run `codex queue` against a thread opened for the test.
 4. **Antigravity and DeepSeek Harness.** Start each app with a test
    conversation open, so their live surfaces can be read.

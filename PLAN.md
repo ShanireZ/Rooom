@@ -148,9 +148,9 @@ Rules:
 | Sessions and state | Process registry (observed) | Thread records (observed) | Transcript files and the app's local service | Plugin check-ins |
 | Replies are read from | Session records (observed) | Thread records (observed) | Transcript files (observed) | Compressed session files (observed) |
 | Requests arrive by | `PermissionRequest` hook (observed); the app's own questions from the session log | The desktop app's pipe `codex-ipc`, as the reference does; its public observer is Unix-only | The app's local service, as the reference does | Plugin folder |
-| Words are sent by | Plugin module and shared folder | Codex's queue (`thread/queue/add`, or the `codex queue` command), or the desktop app's pipe | The app's local service | Plugin and shared folder |
+| Words are sent by | Plugin module and shared folder (observed) | Codex's queue (`thread/queue/add`, or the `codex queue` command), or the desktop app's pipe | The app's local service | Plugin and shared folder |
 | Cancel an untaken message | Expected | To find out | To find out | Expected |
-| Interrupt a running turn | A denial that interrupts, at a permission boundary only (observed) | Not offered by the reference on Windows | Not offered by the reference on Windows | To find out |
+| Interrupt a running turn | The plugin module cancels the turn (observed); a denial that interrupts at a permission boundary (observed) | Not offered by the reference on Windows | Not offered by the reference on Windows | To find out |
 | Start a new session | To find out | To find out | Not offered by the reference on Windows | Not offered by the reference |
 
 "Requests arrive" and "Words are sent" are the two rows D-037 judges a
@@ -174,8 +174,11 @@ delegated check that could not read the hooks page to its end:
   HTTP access. It can submit a prompt once the session is idle, never into a
   running turn. Its stability is not stated.
 - Hooks in the user's local settings do not reach cloud sessions.
-- Not documented: any way to interrupt a turn from outside, and a session
-  identifier in the environment of an MCP server. A shell started by a
+- A plugin module can also cancel the running turn, given the id its
+  `turn.start` hook received. This is in the type definitions shipped with
+  Claude Code 2.1.321 and was observed to work; a shell command already
+  running was left to finish in the background.
+- Not documented: a session identifier in the environment of an MCP server. A shell started by a
   desktop session was observed to have `CLAUDE_CODE_SESSION_ID`.
 
 ### MCP
@@ -343,8 +346,8 @@ observed, by command. Only the channels of D-038 are tried.
 - **The two rows of D-037**, for each client: its requests reach Rooom, and
   Rooom's words reach it.
 - **Interrupt.** The reference offers none on Windows, and synthetic key
-  presses are ruled out. What remains: a denial that interrupts at a
-  permission boundary, and whatever a client's own interfaces offer.
+  presses are ruled out. Claude is settled: its plugin module cancels the
+  turn. For the other three, whatever each client's own interfaces offer.
 - **The Claude desktop app on Windows.** The reference marks its Windows hook
   launch form unverified and looks for desktop apps only on macOS.
 - **A plugin-only Claude path.** The module has a tool-call event; whether it
