@@ -147,7 +147,7 @@ Rules:
 | --- | --- | --- | --- | --- |
 | Sessions and state | Process registry (observed) | Thread records (observed) | The app's local service, found through its hub file (observed) | Plugin check-ins |
 | Replies are read from | Session records (observed) | Thread records (observed) | Transcript files (observed) | Compressed session files (observed) |
-| Requests arrive by | `PermissionRequest` hook (observed); the app's own questions from the session log | `PermissionRequest` hook in `hooks.json` (observed), once the owner has allowed it in Codex and for threads the user reviews; the desktop app's pipe for its other cards, not tried | The app's local service, as the reference does | Plugin folder |
+| Requests arrive by | `PermissionRequest` hook (observed); the app's own questions from the session log | `PermissionRequest` hook in `hooks.json` (observed), once the owner has allowed it in Codex and for threads the user reviews; the desktop app's pipe for its other cards, not tried | The app's local service, polled for waiting steps (observed) | Plugin folder |
 | Words are sent by | Plugin module and shared folder (observed) | Codex's queue, through the `codex queue` command of the executable the app bundles (observed) | The app's local service (observed) | Plugin and shared folder |
 | Cancel an untaken message | Expected | The protocol has `thread/queue/delete`; to try | To find out | Expected |
 | Interrupt a running turn | The plugin module cancels the turn (observed); a denial that interrupts at a permission boundary (observed) | The protocol has `turn/interrupt`; the reference does not offer it on Windows; to try | Not offered by the reference on Windows | To find out |
@@ -205,9 +205,9 @@ delegated check that could not read the hooks page to its end:
   defaults to allow.
 - **One place answers.** A request is answered by the owner in Rooom's
   interface or in the client's own window, whichever comes first; the other
-  card then disappears. Observed for Claude. Codex shows no card of its own
-  while Rooom holds a request, so for Codex Rooom must be able to hand a
-  request back.
+  card then disappears. Observed for Claude and Antigravity. Codex shows no
+  card of its own while Rooom holds a request, so for Codex Rooom must be
+  able to hand a request back.
 - **Agent text is untrusted.** Markdown is rendered without raw HTML, scripts
   or remote loads, under a strict content security policy. A link shows its
   address and opens in the browser. A collapsed card shows the head and the

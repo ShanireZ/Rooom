@@ -40,16 +40,16 @@ The two rows in bold are the ones D-037 judges a client by.
 | Sessions and their state can be read | observed (C-1) | observed (X-1) | observed (A-7) | not tried |
 | Replies can be read | observed (C-2) | observed (X-2) | observed (A-1) | observed (D-1) |
 | The permission mode can be read | observed (C-3) | observed (X-3) | observed (A-9) | observed (D-2) |
-| **Requests reach Rooom** | observed (C-6) | observed (X-8) | not tried | not tried |
+| **Requests reach Rooom** | observed (C-6) | observed (X-8) | observed (A-10) | not tried |
 | **Rooom's words reach the session** | observed (C-9) | observed (X-5) | observed (A-8) | not tried |
 | An untaken message can be cancelled | not tried | not tried | not tried | not tried |
 | A running turn can be interrupted | observed (C-10); also at a permission boundary (C-7) | not tried | not tried | not tried |
 | A new session can be started | not tried | not tried | not tried | not tried |
 | The sending session can be named for MCP | not tried | not tried | not tried | not tried |
 
-D-037 so far: the Claude desktop app and Codex Desktop each have both of
-their rows observed and stay in v1. Antigravity has one of the two.
-DeepSeek Harness is untried.
+D-037 so far: the Claude desktop app, Codex Desktop and Antigravity each
+have both of their rows observed and stay in v1. DeepSeek Harness is
+untried.
 
 ## Across clients
 
@@ -280,13 +280,38 @@ The app was not running during the survey, so only files were seen.
   conversation went to running and back to idle in 4 s, and the transcript
   gained the text and the reply. The text is recorded as the user's own
   input: nothing marks it as coming from outside the app.
-- **A-9. No permission request could be produced.** The conversation's
+- **A-10. A permission request is read and answered through the service.**
+  After the owner set the app to ask before running a terminal command, a
+  test command made the conversation's summary show one entry in
+  `waitingSteps` about 6 s after the message was sent. The entry has a
+  `stepIndex` and a `step` whose `status` is `CORTEX_STEP_STATUS_WAITING`,
+  whose metadata names the tool call (`run_command`) and the source step
+  (`cascadeId`, `trajectoryId`, `stepIndex`), and whose
+  `requestedInteraction.permission` holds `actionDescription`,
+  `resource.action`, `resource.target`, `shellName`,
+  `persistSuggestionType` and `suggestedPersistPattern`. The request was
+  held, then answered with `HandleCascadeUserInteraction` in the body the
+  reference sends (the conversation, the source step, allow or deny, and a
+  scope of "once"):
+
+  | Run | Held | Answer | Result |
+  | --- | --- | --- | --- |
+  | 1 | 12 s | Allow | 200; the command ran and its folder exists. |
+  | 2 | 12 s | Deny | 200; the conversation went on and the folder does not exist. |
+  | 3 | 25 s | Allow | 200; the command ran. |
+
+  Rooom learns of a request by polling, not by being called: the wait
+  between the request and Rooom seeing it is at most the polling interval.
+- **A-11. Both sides can answer.** During the 25 s of run 3 the owner saw
+  the app show its own approval buttons as well. Seen by the owner on
+  screen, not by command.
+- **A-9. Without that setting no request arises.** The conversation's
   configuration carries the command policy at
   `plannerConfig.toolConfig.runCommand.autoCommandConfig.autoExecutionPolicy`,
   and here it read `CASCADE_COMMANDS_AUTO_EXECUTION_EAGER`: commands run
   without asking. Three test commands ran straight away and `waitingSteps`
-  stayed empty, also when one message was sent with that policy changed.
-  So the request row cannot be tested until the owner sets the app to ask.
+  stayed empty, also when one message was sent with that policy changed:
+  the app's own setting decides, not the message's.
   Each command step's metadata carried `preToolHookResults` with a decision,
   which shows the app runs hooks before a tool; that route is not explored.
 - **A-5. Plugins.** `agy plugin` lists `install`, `import` ("from gemini or
@@ -369,8 +394,8 @@ Rooom does not do it by itself.
 3. **Codex.** Words done (X-5), requests done (X-8). Still to do: cancel a
    queued message, interrupt a turn and start a thread, through the methods
    of X-6.
-4. **Antigravity.** State and words done (A-7, A-8). For requests the owner
-   has to set the app to ask before it runs a terminal command.
+4. **Antigravity.** State, words and requests done (A-7, A-8, A-10). Still
+   to try: cancel, interrupt, starting a conversation.
 5. **DeepSeek Harness.** Its experiment loads a plugin into the owner's
    Harness through its patch file. A mistake there can stop Harness from
    starting, so it waits for a written recovery plan and the owner's word.
