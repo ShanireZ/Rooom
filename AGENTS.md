@@ -18,8 +18,9 @@ settled decision, the proposed design and what is still open. Read it first.
 
 ## Working boundaries
 
-- **Planning stage.** No product code, scaffolding, dependency installation or
-  generated project files until the owner approves the design in `PLAN.md`.
+- **Design approved, nothing built.** No product code, scaffolding, dependency
+  installation or generated project files until the owner starts milestone 1
+  of `PLAN.md`. Approving the design did not start it.
 - **One decision at a time.** The owner decides each feature, architecture,
   language, framework, dependency and UI/UX item separately, in a pop-up that
   compares options on performance, ease of use, resource consumption and user
@@ -49,7 +50,7 @@ settled decision, the proposed design and what is still open. Read it first.
 ## Rust build gate
 
 Windows named pipes, windows and WebView2 cannot be verified in a Linux
-container, so Rooom has two gates:
+container, so Rooom has three gates:
 
 - **Host gate.** The whole application and all Windows-only code build and
   test on the Windows host with the MSVC toolchain. Use the toolchain the
@@ -58,7 +59,10 @@ container, so Rooom has two gates:
 - **Docker gate.** Crates with no operating-system code also build and test
   in the project's Linux container, so they stay portable.
 
-Neither gate exists yet. The host gate needs the Visual C++ build tools.
+- **CI gate.** GitHub Actions builds and tests on Windows for every push and
+  pull request.
+
+None of the three exists yet. The host gate needs the Visual C++ build tools.
 
 ## Commands
 
