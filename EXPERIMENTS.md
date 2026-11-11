@@ -382,6 +382,65 @@ says. Two add to it: this version of Harness compresses its session files,
 and Claude Code's plugin modules can cancel a running turn (C-10), which the
 reference does not use.
 
+## DeepSeek Harness: plan and recovery
+
+Written before anything is done, because this experiment is the one that can
+break a client. It waits for the owner's word.
+
+**What the reference tells us** (`src/crates/platform/src/deepseek_plugin/`,
+`clients/deepseek/patch.rs`). Harness loads a plugin named by a row in
+`cordis.patch.yml` in its home folder. The row sits in a top-level list item
+of the form `- insert:`, and gives an `id`, a `name` that is the module's
+file path, and a `config`. The module exports a name, the services it needs
+and `apply(ctx, config)`. It listens to `agent/created`, `agent/disposed`
+and `approval/request`, lists sessions through `ctx.agents`, and queues
+words through a session controller's `prompt` with a mode of "queue". This
+is known only from the reference's code; Harness publishes no plugin
+documentation that Rooom has read.
+
+**What can go wrong.**
+
+- An error escaping a timer or a promise in the module stops the Harness
+  host, the desktop app included, and the app loads the module again at
+  every launch.
+- A patch file that is no longer a top-level list stops every profile from
+  starting.
+- The module runs inside Harness with Harness's own rights.
+
+**How the experiment is kept small.** Two stages, the second only if the
+first is clean.
+
+1. *Observe only.* The module writes a check-in file when a session is
+   created and, on an approval request, writes the names of the request's
+   fields to a file and passes the request on untouched. It has no timer,
+   keeps no promise, wraps every callback in its own error handling, and
+   does nothing at all if its output folder is missing. It cannot change an
+   answer.
+2. *Answer and send.* Only after stage 1: answering an approval, and queuing
+   one test message.
+
+**Steps.**
+
+1. Rooom copies the patch file to a folder of its own as a backup. It does
+   not write in Harness's folder.
+2. Rooom writes the module to a folder of its own and shows the owner the
+   exact block to add: two comment lines around one `- insert:` item.
+3. The owner closes Harness, appends the block by hand, and says so.
+4. Before Harness is started, Rooom checks that the file is byte for byte
+   the backup followed by that block, and nothing else.
+5. The owner starts Harness and opens a test conversation in the test
+   folder. Rooom reads the module's output files.
+
+**Recovery.** If Harness does not start, or behaves oddly: close it, replace
+the patch file with the backup copy (or delete the block between its two
+comment lines), and start it again. The module's folder can be deleted at
+any time; a row that names a missing file is the one case not yet known,
+so the row is removed first and the folder second.
+
+**Leaving.** When the experiment ends the owner removes the block, Rooom
+checks that the file equals the backup again, and then deletes its module,
+its output folder and the backup.
+
 ## Needs the owner's hand
 
 Each of these changes a client's settings or acts inside a live session, so
