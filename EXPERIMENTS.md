@@ -361,12 +361,20 @@ The app was not running during the survey.
   while a session is open. Its `permission/preset`, `sandbox/mode` and
   `approval/policy` lines were `workspace-write`, `workspace-write` and
   `ask`.
-- **D-8. Answering an approval: not yet tested.** The module can return
-  "allowed-once" or "rejected" for a request, which is what the reference
-  returns, but no request arose while it was armed. A queued message asking
-  for a command inside the workspace ran it without asking; one asking for
-  a command outside the workspace ended without running it and without
-  asking. The four requests of D-5 came from messages the owner typed.
+- **D-8. An approval is answered by the plugin.** With "allowed-once" armed
+  through a control file, the owner switched the session to its read-only
+  preset and typed a request for a command. The session's record shows
+  `approval/asked` and `approval/decided` with the outcome `allowed-once` in
+  the same second; the module's record shows it gave that answer, and the
+  command ran. The owner saw no approval prompt at all, in any mode: the
+  module had answered before Harness showed one. So while a plugin answers
+  at once the app's own card never appears; what the app shows while a
+  plugin holds a request was not observed. A "rejected" answer was armed
+  but no further request arose, so denying is not tested.
+- **D-9. When Harness asks.** Under the `workspace-write` preset a command
+  inside the workspace ran without a request, typed or queued. Requests
+  arose under the read-only preset. Under the `auto` preset the sandbox
+  mode read `danger-full-access` and nothing was asked.
 - **D-3. Other files.** `~/.dsh/cordis.patch.yml` exists, beside
   `profiles/desktop/` and `mcp/`.
 
@@ -490,6 +498,5 @@ Rooom does not do it by itself.
    of X-6.
 4. **Antigravity.** State, words and requests done (A-7, A-8, A-10). Still
    to try: cancel, interrupt, starting a conversation.
-5. **DeepSeek Harness.** Stage 1 done (D-4, D-5); of stage 2, queuing a
-   message is done (D-6) and answering a request is not (D-8). The
-   experiment's block is still in the owner's patch file.
+5. **DeepSeek Harness.** Both stages done (D-4 to D-8), except a denial.
+   The experiment's block leaves the owner's patch file when it ends.
