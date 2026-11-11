@@ -503,4 +503,5 @@ Rooom does not do it by itself.
 4. **Antigravity.** State, words and requests done (A-7, A-8, A-10). Still
    to try: cancel, interrupt, starting a conversation.
 5. **DeepSeek Harness.** Both stages done (D-4 to D-8), except a denial.
-   The experiment's block leaves the owner's patch file when it ends.
+   The experiment has ended: the owner removed its block, the patch file was
+   checked to hold its original lines again, and the modules were deleted.
