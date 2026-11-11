@@ -27,7 +27,7 @@ Runs of 2026-11-11, on Windows 11.
 | Client | Version | Packaging |
 | --- | --- | --- |
 | Claude desktop app | 5.1231.0, running Claude Code 2.1.321 | Store package |
-| Codex Desktop | 26.1103.7773.0, with `codex-cli` 0.162.1 | Store package |
+| Codex Desktop | 26.1103.7773.0, bundling `codex` 0.167.0-alpha.3.2; a separate `codex-cli` 0.162.1 is also installed | Store package |
 | Antigravity | 2.29.0, with `agy` 1.0.3 | Per-user installer |
 | DeepSeek Harness | 0.2.2-rc.1 | Per-user installer |
 
@@ -41,14 +41,15 @@ The two rows in bold are the ones D-037 judges a client by.
 | Replies can be read | observed (C-2) | observed (X-2) | observed (A-1) | observed (D-1) |
 | The permission mode can be read | observed (C-3) | observed (X-3) | not tried | observed (D-2) |
 | **Requests reach Rooom** | observed (C-6) | not tried | not tried | not tried |
-| **Rooom's words reach the session** | observed (C-9) | not tried | not tried | not tried |
+| **Rooom's words reach the session** | observed (C-9) | observed (X-5) | not tried | not tried |
 | An untaken message can be cancelled | not tried | not tried | not tried | not tried |
 | A running turn can be interrupted | observed (C-10); also at a permission boundary (C-7) | not tried | not tried | not tried |
 | A new session can be started | not tried | not tried | not tried | not tried |
 | The sending session can be named for MCP | not tried | not tried | not tried | not tried |
 
 D-037 so far: the Claude desktop app has both of its rows observed and stays
-in v1. The other three are undecided.
+in v1. Codex Desktop has one of the two. Antigravity and DeepSeek Harness are
+untried.
 
 ## Across clients
 
@@ -178,6 +179,32 @@ in v1. The other three are undecided.
     (experimental). None was run.
   - The desktop app's process is `ChatGPT.exe`, with a bundled `codex.exe`.
 
+- **X-5. Words reach a thread through Codex's queue.** With a thread open and
+  idle in the desktop app, the `codex` executable bundled with the app was
+  run as `codex queue --thread <thread-id> --message <text>`. It printed
+  "Queued message <id> for thread <id>." and exited 0 after 0.6 s. The
+  thread's record then gained a new turn: `task_started`, the queued text as
+  a `user` message, the assistant's reply, and `task_complete`, about 8 s in
+  all. The app that had the thread open sent it; nothing was typed there. The
+  queue lives in `~/.codex/queue_1.sqlite`. The printed message id is the
+  receipt for "queued"; `task_started` in the record marks "started".
+- **X-6. What the protocol offers, not yet used.** The same executable's
+  `app-server generate-json-schema` lists these methods. Stable:
+  `turn/interrupt` (taking `threadId` and `turnId`), `turn/start`,
+  `turn/steer`, `thread/start`, `thread/resume`, `thread/list`, and the
+  server requests `item/commandExecution/requestApproval`,
+  `item/fileChange/requestApproval` and `item/permissions/requestApproval`.
+  Experimental: `thread/queue/add` (taking `threadId`,
+  `clientUserMessageId` and `input`, exactly as the reference sends it),
+  `thread/queue/delete` (taking `threadId` and `queuedSubmissionId`),
+  `thread/queue/list`, `update`, `reorder`, `start`, and the notification
+  `thread/queue/changed`. So cancelling an untaken message, interrupting a
+  turn and starting a thread each have a named method to try.
+- **X-7. Who reviews approvals.** The test thread's `turn_context` had
+  `approvals_reviewer` set to `auto_review`. The reference only takes a
+  Codex permission request when that field is `user`; anything else stays
+  with the client. The request experiment needs a thread set that way.
+
 ### Antigravity
 
 The app was not running during the survey, so only files were seen.
@@ -263,6 +290,7 @@ Rooom does not do it by itself.
    with the owner: the same entry in the user's own settings file.
 2. **Claude, words.** Done with a development module (C-9, C-10). Still to
    do with the owner: installing a plugin for every session.
-3. **Codex, words.** Run `codex queue` against a thread opened for the test.
+3. **Codex, words.** Done (X-5). Next for Codex, with the owner: a thread
+   whose approvals are reviewed by the user, for the request experiment.
 4. **Antigravity and DeepSeek Harness.** Start each app with a test
    conversation open, so their live surfaces can be read.
