@@ -28,7 +28,7 @@ Runs of 2026-11-11, on Windows 11.
 | --- | --- | --- |
 | Claude desktop app | 5.1231.0, running Claude Code 2.1.321 | Store package |
 | Codex Desktop | 26.1103.7773.0, bundling `codex` 0.167.0-alpha.3.2; a separate `codex-cli` 0.162.1 is also installed | Store package |
-| Antigravity | 2.29.0, with `agy` 1.0.3 | Per-user installer |
+| Antigravity | 2.29.0, its local service reporting 2.31.0; with `agy` 1.0.3 | Per-user installer |
 | DeepSeek Harness | 0.2.2-rc.1 | Per-user installer |
 
 ## Clients
@@ -37,19 +37,19 @@ The two rows in bold are the ones D-037 judges a client by.
 
 | Capability | Claude desktop app | Codex Desktop | Antigravity | DeepSeek Harness |
 | --- | --- | --- | --- | --- |
-| Sessions and their state can be read | observed (C-1) | observed (X-1) | not tried | not tried |
+| Sessions and their state can be read | observed (C-1) | observed (X-1) | observed (A-7) | not tried |
 | Replies can be read | observed (C-2) | observed (X-2) | observed (A-1) | observed (D-1) |
-| The permission mode can be read | observed (C-3) | observed (X-3) | not tried | observed (D-2) |
+| The permission mode can be read | observed (C-3) | observed (X-3) | observed (A-9) | observed (D-2) |
 | **Requests reach Rooom** | observed (C-6) | observed (X-8) | not tried | not tried |
-| **Rooom's words reach the session** | observed (C-9) | observed (X-5) | not tried | not tried |
+| **Rooom's words reach the session** | observed (C-9) | observed (X-5) | observed (A-8) | not tried |
 | An untaken message can be cancelled | not tried | not tried | not tried | not tried |
 | A running turn can be interrupted | observed (C-10); also at a permission boundary (C-7) | not tried | not tried | not tried |
 | A new session can be started | not tried | not tried | not tried | not tried |
 | The sending session can be named for MCP | not tried | not tried | not tried | not tried |
 
 D-037 so far: the Claude desktop app and Codex Desktop each have both of
-their rows observed and stay in v1. Antigravity and DeepSeek Harness are
-untried.
+their rows observed and stay in v1. Antigravity has one of the two.
+DeepSeek Harness is untried.
 
 ## Across clients
 
@@ -263,6 +263,32 @@ The app was not running during the survey, so only files were seen.
   So this version may announce its service through a file; whether a live
   one appears when a window is open is the next thing to observe. The token
   values were never read out.
+- **A-6. Finding the live service.** With a window open there is one
+  `language_server` process and one hub file whose `pid` is alive. Its two
+  ports and its credential, used as the reference uses them, passed the
+  `GetUserStatus` handshake over both HTTP and HTTPS. So on this version
+  the hub file is enough: no process command line has to be read.
+- **A-7. Conversations and their state.** `GetAllCascadeTrajectories`
+  returned one summary per loaded conversation, with `status` (seen:
+  `CASCADE_RUN_STATUS_IDLE` and `CASCADE_RUN_STATUS_RUNNING`), `stepCount`,
+  `workspaces`, `lastModifiedTime` and, when something waits,
+  `waitingSteps`. Polled once a second it showed each run start and end.
+- **A-8. Words reach a conversation.** `SendUserCascadeMessage`, with the
+  body the reference sends (the conversation id, the text, a delivery
+  strategy of "when idle", and the model configuration taken from the
+  conversation's own last user step), returned 200 at once. The
+  conversation went to running and back to idle in 4 s, and the transcript
+  gained the text and the reply. The text is recorded as the user's own
+  input: nothing marks it as coming from outside the app.
+- **A-9. No permission request could be produced.** The conversation's
+  configuration carries the command policy at
+  `plannerConfig.toolConfig.runCommand.autoCommandConfig.autoExecutionPolicy`,
+  and here it read `CASCADE_COMMANDS_AUTO_EXECUTION_EAGER`: commands run
+  without asking. Three test commands ran straight away and `waitingSteps`
+  stayed empty, also when one message was sent with that policy changed.
+  So the request row cannot be tested until the owner sets the app to ask.
+  Each command step's metadata carried `preToolHookResults` with a decision,
+  which shows the app runs hooks before a tool; that route is not explored.
 - **A-5. Plugins.** `agy plugin` lists `install`, `import` ("from gemini or
   claude"), `enable`, `disable` and `validate`. Not tried.
 - **A-2. Command line.** `agy --help` lists `--conversation <id>`,
@@ -343,8 +369,8 @@ Rooom does not do it by itself.
 3. **Codex.** Words done (X-5), requests done (X-8). Still to do: cancel a
    queued message, interrupt a turn and start a thread, through the methods
    of X-6.
-4. **Antigravity.** Open the app with a test conversation, so its live
-   service can be found and read.
+4. **Antigravity.** State and words done (A-7, A-8). For requests the owner
+   has to set the app to ask before it runs a terminal command.
 5. **DeepSeek Harness.** Its experiment loads a plugin into the owner's
    Harness through its patch file. A mistake there can stop Harness from
    starting, so it waits for a written recovery plan and the owner's word.
