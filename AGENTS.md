@@ -14,7 +14,8 @@ This is an independent Git repository on `main`. GitHub `ShanireZ/Rooom`
 `LICENSE` file alone.
 
 [`PLAN.md`](PLAN.md) is the product and decision authority: scope, every
-settled decision, the proposed design and what is still open. Read it first.
+settled decision, the design and what is still open. Read it first.
+[`EXPERIMENTS.md`](EXPERIMENTS.md) holds what milestone 1 has observed.
 
 ## Working boundaries
 
@@ -37,6 +38,9 @@ settled decision, the proposed design and what is still open. Read it first.
 - **This repository is public.** Keep machine facts, private project names and
   their decisions, and anything from a maintainer's environment out of every
   file and commit message.
+- **Experiments read structure, not content.** A probe prints file names, key
+  names, enumerated values and counts. An experiment that changes a client's
+  settings or acts in a live session waits for the owner.
 - **Fixtures are synthetic.** Never commit a real session record, transcript,
   request or client settings file, even shortened.
 - **License statements.** Write the generic `GPL-3.0`; never `GPL-3.0-only` or
@@ -62,7 +66,8 @@ container, so Rooom has three gates:
 - **CI gate.** GitHub Actions builds and tests on Windows for every push and
   pull request.
 
-None of the three exists yet. The host gate needs the Visual C++ build tools.
+None of the three exists yet. The host toolchain was observed to build an
+MSVC executable; see `EXPERIMENTS.md`.
 
 ## Commands
 

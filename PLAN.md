@@ -141,14 +141,14 @@ Rules:
 - If Rooom is not running, a hook callback answers nothing and the client
   asks in its own window.
 
-### Clients (expected; every cell is unverified until its experiment)
+### Clients (expected; [EXPERIMENTS.md](EXPERIMENTS.md) says what has been observed)
 
 | | Claude desktop app | Codex Desktop | Antigravity | DeepSeek Harness |
 | --- | --- | --- | --- | --- |
-| Sessions and state | Session records and process registry | Thread records | To find out | Plugin check-ins |
-| Replies are read from | Session records | Thread records | To find out | To find out |
+| Sessions and state | Process registry (observed) | Thread records (observed) | To find out | Plugin check-ins |
+| Replies are read from | Session records (observed) | Thread records (observed) | To find out | To find out |
 | Requests arrive by | `PermissionRequest` hook; the app's own questions from the session log | To find out: the reference's public desktop observer is Unix-only | To find out | Plugin folder |
-| Words are sent by | Plugin module and shared folder | To find out: the reference uses the desktop owner pipe, and a queue served by the `codex` executable | Local language server | Plugin and shared folder |
+| Words are sent by | Plugin module and shared folder | To find out: the `codex queue` command, or the desktop app's pipe | Local language server | Plugin and shared folder |
 | Cancel an untaken message | Expected | To find out | To find out | Expected |
 | Interrupt a running turn | No documented way from outside; a denial can interrupt at a permission boundary | Not offered by the reference on Windows | Not offered by the reference on Windows | To find out |
 | Start a new session | To find out | To find out | Not offered by the reference on Windows | Not offered by the reference |
@@ -175,7 +175,8 @@ delegated check that could not read the hooks page to its end:
   running turn. Its stability is not stated.
 - Hooks in the user's local settings do not reach cloud sessions.
 - Not documented: any way to interrupt a turn from outside, and a session
-  identifier in the environment of an MCP server.
+  identifier in the environment of an MCP server. A shell started by a
+  desktop session was observed to have `CLAUDE_CODE_SESSION_ID`.
 
 ### MCP
 
@@ -372,8 +373,10 @@ Client apps update often: each adapter records the client version it was
 verified against, reports an unknown version as unverified, and can be
 switched off on its own.
 
-1. **Experiments.** The list above, one capability table per client. D-037
-   then decides which clients stay.
+1. **Experiments.** Results are kept in [EXPERIMENTS.md](EXPERIMENTS.md).
+   Done when no cell there reads "not tried":
+   `grep -c "not tried" EXPERIMENTS.md` prints 0. D-037 then decides which
+   clients stay, from the two rows it names.
 2. **Skeleton.** The three build gates, the resident program, the strip and
    panel, tray, shortcut, the pipe, settings.
 3. **The adapters, in parallel** (D-006), with the timeline, request cards
