@@ -145,10 +145,10 @@ Rules:
 
 | | Claude desktop app | Codex Desktop | Antigravity | DeepSeek Harness |
 | --- | --- | --- | --- | --- |
-| Sessions and state | Process registry (observed) | Thread records (observed) | To find out | Plugin check-ins |
-| Replies are read from | Session records (observed) | Thread records (observed) | To find out | To find out |
-| Requests arrive by | `PermissionRequest` hook; the app's own questions from the session log | To find out: the reference's public desktop observer is Unix-only | To find out | Plugin folder |
-| Words are sent by | Plugin module and shared folder | To find out: the `codex queue` command, or the desktop app's pipe | Local language server | Plugin and shared folder |
+| Sessions and state | Process registry (observed) | Thread records (observed) | Transcript files and the app's local service | Plugin check-ins |
+| Replies are read from | Session records (observed) | Thread records (observed) | Transcript files (observed) | Compressed session files (observed) |
+| Requests arrive by | `PermissionRequest` hook; the app's own questions from the session log | The desktop app's pipe `codex-ipc`, as the reference does; its public observer is Unix-only | The app's local service, as the reference does | Plugin folder |
+| Words are sent by | Plugin module and shared folder | Codex's queue (`thread/queue/add`, or the `codex queue` command), or the desktop app's pipe | The app's local service | Plugin and shared folder |
 | Cancel an untaken message | Expected | To find out | To find out | Expected |
 | Interrupt a running turn | No documented way from outside; a denial can interrupt at a permission boundary | Not offered by the reference on Windows | Not offered by the reference on Windows | To find out |
 | Start a new session | To find out | To find out | Not offered by the reference on Windows | Not offered by the reference |
@@ -332,7 +332,8 @@ and `@tauri-apps/api` must stay on the same minor version.
 | 3 | The design of the signature shader effect (D-043). |
 | 4 | The design of the abstract icon set (D-042). |
 | 5 | `remark-gfm` for tables in Markdown: not in the approved dependency list. |
-| 6 | Which clients let Rooom read a session's permission mode, which one of D-033's four questions depends on. |
+| 6 | Which clients let Rooom read a session's permission mode, which one of D-033's four questions depends on. Observed so far: Claude, Codex and DeepSeek Harness do. |
+| 7 | A Zstandard decoder for DeepSeek Harness's session files: not in the approved dependency list. |
 
 ## Experiments before the interface promises anything
 

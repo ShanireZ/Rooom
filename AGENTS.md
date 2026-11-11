@@ -19,9 +19,13 @@ settled decision, the design and what is still open. Read it first.
 
 ## Working boundaries
 
-- **Design approved, nothing built.** No product code, scaffolding, dependency
-  installation or generated project files until the owner starts milestone 1
-  of `PLAN.md`. Approving the design did not start it.
+- **Milestone 1 is running; nothing is built.** The owner started the
+  experiments of `PLAN.md` on 2026-11-11. Throwaway probes are allowed and
+  stay out of the repository. No product code, scaffolding, dependency
+  installation or generated project files until the owner starts milestone 2.
+- **Read the reference first.** For every technical question, read how the
+  reference solves it before designing an experiment or an answer, and record
+  what it does by path and commit (owner, 2026-11-11).
 - **One decision at a time.** The owner decides each feature, architecture,
   language, framework, dependency and UI/UX item separately, in a pop-up that
   compares options on performance, ease of use, resource consumption and user
@@ -62,7 +66,6 @@ container, so Rooom has three gates:
   `CARGO_TARGET_DIR` to make a command run.
 - **Docker gate.** Crates with no operating-system code also build and test
   in the project's Linux container, so they stay portable.
-
 - **CI gate.** GitHub Actions builds and tests on Windows for every push and
   pull request.
 
@@ -71,5 +74,5 @@ MSVC executable; see `EXPERIMENTS.md`.
 
 ## Commands
 
-None. This is a planning-only repository with no build, test or run command.
+None. The repository holds documents only: no build, test or run command.
 Check Markdown links after editing documents and run `git diff --check`.

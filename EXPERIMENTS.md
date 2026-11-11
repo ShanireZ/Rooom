@@ -5,6 +5,11 @@ found by running commands against the real client. Only the channels D-038
 allows are tried. Nothing here writes a client's settings (D-028); a step
 that needs a change there is done by the owner's hand and says so.
 
+Before an experiment is designed, the reference is read for how it solves the
+same problem; "How the reference does it" below records that, by path, at
+commit `d14bc43` of `jazzenchen/agent-hud-open`. Rooom reads the reference
+and copies nothing from it.
+
 Every cell is one of:
 
 - **observed** — seen by command, with the observation it points to;
@@ -33,8 +38,8 @@ The two rows in bold are the ones D-037 judges a client by.
 | Capability | Claude desktop app | Codex Desktop | Antigravity | DeepSeek Harness |
 | --- | --- | --- | --- | --- |
 | Sessions and their state can be read | observed (C-1) | observed (X-1) | not tried | not tried |
-| Replies can be read | observed (C-2) | observed (X-2) | not tried | not tried |
-| The permission mode can be read | observed (C-3) | observed (X-3) | not tried | not tried |
+| Replies can be read | observed (C-2) | observed (X-2) | observed (A-1) | observed (D-1) |
+| The permission mode can be read | observed (C-3) | observed (X-3) | not tried | observed (D-2) |
 | **Requests reach Rooom** | not tried | not tried | not tried | not tried |
 | **Rooom's words reach the session** | not tried | not tried | not tried | not tried |
 | An untaken message can be cancelled | not tried | not tried | not tried | not tried |
@@ -114,20 +119,34 @@ The two rows in bold are the ones D-037 judges a client by.
 
 The app was not running during the survey, so only files were seen.
 
-- **A-1. Files.** `~/.gemini/antigravity/conversations/<id>.db` is one
-  SQLite database per conversation, beside `conversation_summaries.db`,
-  `brain/<id>/`, `annotations/<id>.pbtxt` and a `daemon/` folder.
-  `~/.gemini/config/mcp_config.json` has an `mcpServers` key, and
-  `~/.gemini/config/plugins/` exists. The reference describes transcript
-  files; what this version writes has to be read again.
+- **A-1. Transcripts.**
+  `~/.gemini/antigravity/brain/<id>/.system_generated/logs/transcript.jsonl`
+  exists for each conversation, where the reference says it is. A line has
+  the keys `type`, `source`, `status`, `step_index`, `created_at` and
+  `content`; step types seen: `USER_INPUT`, `PLANNER_RESPONSE`, `GENERIC`,
+  `SYSTEM_MESSAGE`, `CHECKPOINT`. Replies are the `PLANNER_RESPONSE` steps.
+- **A-3. Other files.** `conversations/<id>.db` is one SQLite database per
+  conversation, beside `conversation_summaries.db`, `annotations/<id>.pbtxt`
+  and a `daemon/` folder. `~/.gemini/config/mcp_config.json` has an
+  `mcpServers` key, and `~/.gemini/config/plugins/` exists.
 - **A-2. Command line.** `agy --help` lists `--conversation <id>`,
   `--continue`, `--print`, and a `plugin` subcommand. None was run.
 
 ### DeepSeek Harness
 
-The app was not running during the survey. `~/.dsh/` holds
-`cordis.patch.yml`, `sessions/<project>/`, `profiles/desktop/` and `mcp/`.
-Nothing else was read.
+The app was not running during the survey.
+
+- **D-1. Session records.**
+  `~/.dsh/sessions/<project>/<session>/session.v4.jsonl.zstd`: JSON lines
+  compressed with Zstandard. Line types seen include `session`,
+  `turn/start`, `step/start`, `step/end`, `user/message`,
+  `assistant/message`, `tool/call`, `tool/result`, `approval/asked` and
+  `approval/decided`. Replies are the `assistant/message` lines. Whether a
+  session that is still open keeps an uncompressed file was not seen.
+- **D-2. Permission mode.** The record has `permission/preset`,
+  `sandbox/mode` and `approval/policy` lines.
+- **D-3. Other files.** `~/.dsh/cordis.patch.yml` exists, beside
+  `profiles/desktop/` and `mcp/`.
 
 ### Across clients
 
@@ -148,6 +167,27 @@ Nothing else was read.
   it is redirected under the package. The folders the adapters read,
   `~/.claude` and `~/.codex`, are in the user profile and an ordinary program
   reads them.
+
+## How the reference does it
+
+What the next experiments start from. Paths are in the reference repository.
+
+| Question | The reference's answer | Where |
+| --- | --- | --- |
+| Claude: is a registry entry's process still alive? | An entry counts only while the process on its `pid` started at the entry's `procStart`; a reused pid is another program. A killed process leaves its file behind. | `src/crates/agents/src/claude/processes.rs` |
+| Claude: how do words get in? | A plugin module checks in to a shared folder every 5 s, claims a prompt file before submitting it, and reports taken, started or refused in the same file. | `src/crates/platform/src/claude_plugin/` |
+| Claude: how is the plugin installed? | By Claude Code's own plugin-install command from a local marketplace folder; the reference only builds the arguments. | `src/crates/platform/src/claude_plugin/records.rs` |
+| Codex Desktop: where do approvals and questions come from? | The desktop app's named pipe `codex-ipc`, which streams each followed thread's state; a decision is sent once to the thread's owner. The pipe's server is validated by its user identity, never by its name. | `src/crates/platform/src/clients/codex/desktop_io/windows.rs`, `desktop/` |
+| Codex: how do words get in without interrupting? | The request `thread/queue/add` to a short-lived `codex app-server`; the app that has the thread open sends the item when the thread is idle. | `src/crates/platform/src/delivery/codex/mod.rs` |
+| Codex: when does a hook run? | Only after the user allowed its exact command in Codex; until then Codex skips it silently. | `src/crates/agents/src/codex/hooks.rs` |
+| Antigravity: where do permission requests come from? | The app's own loopback service, found from the `language_server.exe` and `agy.exe` processes of the same user and their listening ports. The process command line can hold a credential and is never logged. | `src/crates/platform/src/clients/antigravity/service.rs`, `os/windows/antigravity.rs`, `scripts/windows/antigravity-processes.ps1` |
+| Antigravity: where are turns and replies? | `brain/<id>/.system_generated/logs/transcript.jsonl`; a turn starts at each `USER_INPUT` step. | `src/crates/agents/src/antigravity/transcript.rs` |
+| DeepSeek Harness: how are requests and words carried? | One plugin file loaded through a marked block in `cordis.patch.yml`, sharing a folder with the app: check-ins, prompts, and `asks/<id>.json` answered by `asks/<id>.answer`, first answer wins. | `src/crates/platform/src/deepseek_plugin/`, `clients/deepseek/patch.rs` |
+| DeepSeek Harness: what must never happen to its patch file? | It must stay a top-level list; an empty or comments-only file stops every profile from starting. | `src/crates/platform/src/clients/deepseek/patch.rs` |
+
+Two of this machine's observations agree with it: the pipe `codex-ipc`
+exists while Codex Desktop runs, and Antigravity's transcripts are where it
+says. One adds to it: this version of Harness compresses its session files.
 
 ## Needs the owner's hand
 
