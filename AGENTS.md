@@ -36,6 +36,8 @@ settled decision, the proposed design and what is still open. Read it first.
 - **This repository is public.** Keep machine facts, private project names and
   their decisions, and anything from a maintainer's environment out of every
   file and commit message.
+- **Fixtures are synthetic.** Never commit a real session record, transcript,
+  request or client settings file, even shortened.
 - **License statements.** Write the generic `GPL-3.0`; never `GPL-3.0-only` or
   `GPL-3.0-or-later`. Do not add a license to third-party material.
 - **README editions.** English, Traditional Chinese (Taiwan), Simplified

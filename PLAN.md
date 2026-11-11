@@ -16,6 +16,10 @@ Rooom observes sessions that already run in their own apps. It owns no
 conversation engine: when a new session is wanted, the client's own app
 starts it at Rooom's request.
 
+Only sessions running on this computer are in reach (*proposed*): a cloud
+session does not read local settings, and a remote session reads the remote
+host's.
+
 ## Reference
 
 `jazzenchen/agent-hud-open`, Apache-2.0, read at commit
@@ -56,7 +60,7 @@ experience.
 | D-004 | Addressing | A reply goes to the sender of the message it answers; otherwise the message goes to the recipient shown on the chip beside the composer (D-022). No broadcast, no model-based routing, no `@name` syntax. |
 | D-005 | How the rest is decided | One item at a time, each with advantages, disadvantages and a recommendation. |
 | D-006 | Clients in v1 | Four desktop clients, built at the same time: the Claude desktop app, Codex Desktop, Antigravity and DeepSeek Harness. No Claude Code CLI and no Codex CLI. |
-| D-007 | Process architecture | One resident executable owns the inbox, the window, watching and receiving. The hook callback and the MCP relay are the same executable started with a flag (`--hook`, `--mcp`) and are short-lived. |
+| D-007 | Process architecture | One resident executable owns the inbox, the window, watching and receiving. The hook callback and the MCP relay are the same executable started with a flag (`--hook`, `--mcp`). The hook callback lives for one request; the MCP relay lives as long as the client session that started it (wording corrected in the 2026-11-11 review: the first draft called both short-lived). |
 | D-008 | Back-end language | Rust. Chosen over Go, C#/.NET and TypeScript. |
 | D-009 | Window shell | Tauri 2 on WebView2. Chosen over Slint, egui and native Win32/WinUI because the window is mostly text: Chinese input, selection, Markdown and code blocks. Accepted cost: the highest memory use of the four. |
 | D-010 | Rust build gate | Two gates. The application and all Windows-only code build and test on the Windows host with MSVC; crates without operating-system code also build and test in a Linux container. |
@@ -123,12 +127,38 @@ Rules carried over from the reference's design and kept:
 
 | | Claude desktop app | Codex Desktop | Antigravity | DeepSeek Harness |
 | --- | --- | --- | --- | --- |
-| Sessions and state | Session records and process registry | Thread records | Local language server | Plugin check-ins |
-| Requests arrive by | Hook callback; the app's own questions from the session log | Hook callback; desktop owner pipe | To find out | Plugin folder |
-| Words are sent by | Plugin and shared folder | Shared queue; desktop owner pipe | Local language server | Plugin and shared folder |
-| Cancel an untaken message | Expected | Expected | To find out | Expected |
-| Interrupt a running turn | To find out | Not offered by the reference on Windows | Not offered by the reference on Windows | To find out |
-| Start a new session | To find out | Expected | Not offered by the reference on Windows | Not offered by the reference |
+| Sessions and state | Session records and process registry | Thread records | To find out | Plugin check-ins |
+| Replies are read from | Session records | Thread records | To find out | To find out |
+| Requests arrive by | `PermissionRequest` hook; the app's own questions from the session log | To find out: the reference's public desktop observer is Unix-only | To find out | Plugin folder |
+| Words are sent by | Plugin module and shared folder | To find out: the reference uses the desktop owner pipe, and a queue served by the `codex` executable | Local language server | Plugin and shared folder |
+| Cancel an untaken message | Expected | To find out | To find out | Expected |
+| Interrupt a running turn | No documented way from outside; a denial can interrupt at a permission boundary | Not offered by the reference on Windows | Not offered by the reference on Windows | To find out |
+| Start a new session | To find out | To find out | Not offered by the reference on Windows | Not offered by the reference |
+
+The Claude adapter is Claude Code's own: terminal sessions use the same
+hooks, settings and plugin, so they appear too unless Rooom filters them
+out. D-006 excludes them; how is open.
+
+Claude Code facts from its documentation (the hooks reference and the plugin
+"mods" pages under `code.claude.com/docs`), read on 2026-11-11 through a
+delegated check that could not read the hooks page to its end:
+
+- A `PermissionRequest` hook receives the tool's name and input and answers
+  allow or deny. An allow can add a permission rule for the session, the
+  project or the user. A deny can interrupt the turn.
+- A command hook waits 600 seconds by default; each entry can set its own
+  timeout. No maximum is documented.
+- A hook whose command is missing or fails does not block the tool call,
+  unless the entry asks for that.
+- A hook entry can name an executable and its arguments with no shell. On
+  Windows it must be a real `.exe`.
+- A plugin can ship a JavaScript module with events for session start, tool
+  call, prompt submit and turn complete, and with file, clock, process and
+  HTTP access. It can submit a prompt once the session is idle, never into a
+  running turn. Its stability is not stated.
+- Hooks in the user's local settings do not reach cloud sessions.
+- Not documented: any way to interrupt a turn from outside, and a session
+  identifier in the environment of an MCP server.
 
 ### MCP (proposed)
 
@@ -136,10 +166,36 @@ Rules carried over from the reference's design and kept:
   resident program over the pipe.
 - Tools: list sessions, send a message, read the answer, start a session.
 - The relay names the sender from what the client provides about itself;
-  an argument written by the agent never names it.
+  an argument written by the agent never names it. Replies and the chain cap
+  need the sending *session*, not only the client. How each client tells its
+  relay which session it serves is unresolved; for Claude Code no documented
+  environment variable carries it.
 - Off until the owner turns it on. A chain of passes is capped, default 10.
 - Messages are enqueue-only: they wait until the receiving session is idle.
 - Every message between agents is shown in the owner's timeline.
+
+### Safety, privacy and failure rules (proposed)
+
+- **Fail toward the client.** No answer, a timeout, a crash, a closed pipe or
+  a missing Rooom all mean the client asks in its own window. Nothing ever
+  defaults to allow.
+- **One place answers.** A request is answered by the owner in Rooom's
+  interface or in the client's own window, whichever comes first; the other
+  card then disappears.
+- **Agent text is untrusted.** Markdown is rendered without raw HTML, scripts
+  or remote loads, under a strict content security policy. A link shows its
+  address and opens in the browser. A collapsed card shows the head and the
+  tail of a command and its length, so a summary cannot hide what runs.
+- **No network.** Rooom makes no network request.
+- **No words in logs.** Logs hold identifiers and states only.
+- **What Rooom does not defend against.** Another program running as the
+  owner can already edit a client's settings. Rooom must not make that
+  easier, but the pipe and the plugin folders are open to the owner's own
+  programs, the agents included. Whether answers and senders need
+  authentication beyond that is open.
+- **Words on disk.** A message waiting in a plugin folder is a file holding
+  its words until a session takes it or it expires. D-017 does not yet say
+  whether that is acceptable.
 
 ### Front-end rules
 
@@ -215,10 +271,13 @@ code is written.
 | `tokio` | 1.54.1 | MIT | Named pipes with cancellation and deadlines. |
 | `windows-sys` | 0.61.2 | MIT OR Apache-2.0 | Security descriptors, window styles, focus. |
 | `notify` | 8.2.2 | CC0-1.0 | Watching client records and plugin folders. |
-| `serde`, `serde_json` | 1.0.229, 1.0.154 | Not read | Records, snapshot, settings. |
-| `sha2`, `uuid` | 0.11.1, 1.29.2 | Not read | Request fingerprints and identifiers. |
+| `serde`, `serde_json` | 1.0.229, 1.0.154 | MIT OR Apache-2.0 | Records, snapshot, settings. |
+| `sha2`, `uuid` | 0.11.1, 1.29.2 | MIT OR Apache-2.0 | Request fingerprints and identifiers. |
+| `tauri-plugin-global-shortcut` | 2.4.1 | Apache-2.0 OR MIT | The global shortcut of D-019. |
+| `tauri-plugin-single-instance` | 2.5.5 | Apache-2.0 OR MIT | One resident copy; a second launch raises the first. |
+| `tauri-plugin-autostart` | 2.7.0 | Apache-2.0 OR MIT | Optional start at sign-in. |
 | `react`, `react-dom` | 19.3.1 | MIT | Interface (D-011). |
-| `babel-plugin-react-compiler` | 1.0.0 | MIT | React Compiler (D-015). |
+| `babel-plugin-react-compiler`, `@rolldown/plugin-babel` | 1.0.0, 0.3.1 | MIT | React Compiler (D-015). `@vitejs/plugin-react` 6 names both as optional peers; it no longer runs Babel itself. |
 | `vite`, `@vitejs/plugin-react` | 8.3.8, 6.3.0 | MIT | Build. |
 | `typescript` | 7.0.2 | Apache-2.0 | Types. |
 | `@tauri-apps/api`, `@tauri-apps/cli` | 2.12.4 | Apache-2.0 OR MIT | Calls into the host; build. |
@@ -228,8 +287,8 @@ code is written.
 | `animejs` | 4.5.0 | MIT | Motion tiers 2 and 3, loaded on demand. |
 | `three` | 0.187.0 | MIT | Motion tier 4, loaded on demand. |
 
-Rows marked "Not read" have a version from the registry but their license
-was not looked up; read it before the dependency is added.
+`rmcp` is published from `modelcontextprotocol/rust-sdk`. The `tauri` crate
+and `@tauri-apps/api` must stay on the same minor version.
 
 Not chosen yet: a Markdown renderer and a code highlighter for the timeline.
 
@@ -245,12 +304,26 @@ Not chosen yet: a Markdown renderer and a code highlighter for the timeline.
 
 ## Open
 
+Raised or sharpened by the review of 2026-11-11. Each needs the owner.
+
 | # | Item |
 | --- | --- |
 | 1 | Approve or correct everything marked *proposed* above. |
-| 2 | Markdown renderer and code highlighter. |
-| 3 | The exact text Rooom shows for each client's manual setup (D-028), once the experiments say what works. |
-| 4 | Packaging details and code signing. |
+| 2 | Claude Code terminal sessions: filter them out, or show them (D-006). |
+| 3 | How far one agent may act on another (D-027): free once the switch is on, an allowlist per pair of clients, or the owner's approval for each new session. A session with few permissions could otherwise ask one with many to act for it. |
+| 4 | An unanswered request: how long it waits before the client asks in its own window (Claude Code's default is 600 s), and whether the panel stays open until then (D-019 says it hides, D-020 says it opens). |
+| 5 | "Always allow": whether Rooom offers it, and whether the rule is kept for the session, the project or the user. The client writes its own settings when Rooom answers this way, which touches D-028. |
+| 6 | The reach of D-017: whether words may sit on disk in a delivery folder, and whether a queued message survives a restart of Rooom. |
+| 7 | The exit rule when an experiment fails: ship that client with less, drop it, or wait. Also whether UI Automation, synthetic key presses and undocumented private interfaces are acceptable channels. |
+| 8 | An idle budget. A strip drawn by the WebView keeps the WebView alive all day; a strip drawn natively lets the WebView be created only when the panel opens, at the cost of a second drawing path. |
+| 9 | A chip with several recipients (*proposed*) against "no broadcast" in D-004: each recipient costs a model turn. |
+| 10 | A Windows build on GitHub Actions as a third gate, now that the repository is public. |
+| 11 | Client logos or plain text labels on the strip and chips. Logos are other parties' marks. |
+| 12 | Three.js: ship none of it until a specific effect is approved. |
+| 13 | Markdown renderer and code highlighter. |
+| 14 | The exact text Rooom shows for each client's manual setup (D-028), and how the owner removes it again. |
+| 15 | Packaging: code signing, and a fixed install path that survives spaces and non-ASCII characters in the user name. |
+| 16 | Hiding request details while the screen is shared. |
 
 ## Experiments before the interface promises anything
 
@@ -261,14 +334,31 @@ observed, by command.
   clients. D-003 asks for one. Each client needs its own experiment.
 - **The Claude desktop app on Windows.** The reference marks its Windows hook
   launch form unverified and looks for desktop apps only on macOS.
-- **Whether a Claude Code plugin alone can carry permission requests.** If its
-  module can hold a tool call and exchange files with the app, the Claude
-  adapter needs no hook callback and no pipe.
 - **Starting a session** in each client at Rooom's request (D-027).
 - **Focus.** Opening the panel without taking focus (D-020), then taking it
-  only when the owner clicks into the composer.
+  only when the owner clicks into the composer. Tauri 2.12 documents a
+  `focusable` window option and `set_focusable`; whether Chinese input works
+  right after the switch is the thing to observe.
+- **One executable in three roles** (D-007). A windowed program started as a
+  hook or as a stdio MCP server: whether each client waits for it and reads
+  its output, that nothing else is ever written to standard output, and how
+  long a cold start takes with the antivirus scan included. If it fails, the
+  hook and the relay become a small console program, as D-007 foresaw.
+- **Where packaged clients keep their files.** A client installed from the
+  Store may redirect its data folders.
+- **Idle cost.** Memory and wake-ups of a resident WebView against a native
+  strip (open item 8).
+- **A plugin-only Claude path.** The module has a tool-call event; whether it
+  can hold a call until the owner answers decides if the hook is needed.
+- **The pipe name** when the owner has more than one Windows session open.
 
 ## Milestones (proposed)
+
+Before a milestone starts it gets done criteria that a command can check.
+The exit rule of open item 7 applies to milestone 1's results. Client apps
+update often: each adapter records the client version it was verified
+against, reports an unknown version as unverified, and can be switched off
+on its own.
 
 1. **Experiments.** The list above, one capability table per client.
 2. **Skeleton.** Both build gates, the resident program, the strip and panel,
