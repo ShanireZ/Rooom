@@ -369,8 +369,12 @@ The app was not running during the survey.
   command ran. The owner saw no approval prompt at all, in any mode: the
   module had answered before Harness showed one. So while a plugin answers
   at once the app's own card never appears; what the app shows while a
-  plugin holds a request was not observed. A "rejected" answer was armed
-  but no further request arose, so denying is not tested.
+  plugin holds a request was not observed. Denying is not tested.
+  The control case followed: with nothing armed, the next request in the
+  read-only preset was passed on by the module, Harness showed its own
+  prompt, and the owner allowed it there six seconds later. So a plugin that
+  does not answer leaves the request to the app, which is the failure
+  behaviour Rooom relies on.
 - **D-9. When Harness asks.** Under the `workspace-write` preset a command
   inside the workspace ran without a request, typed or queued. Requests
   arose under the read-only preset. Under the `auto` preset the sandbox
