@@ -40,15 +40,15 @@ The two rows in bold are the ones D-037 judges a client by.
 | Sessions and their state can be read | observed (C-1) | observed (X-1) | not tried | not tried |
 | Replies can be read | observed (C-2) | observed (X-2) | observed (A-1) | observed (D-1) |
 | The permission mode can be read | observed (C-3) | observed (X-3) | not tried | observed (D-2) |
-| **Requests reach Rooom** | observed (C-6) | not tried | not tried | not tried |
+| **Requests reach Rooom** | observed (C-6) | observed (X-8) | not tried | not tried |
 | **Rooom's words reach the session** | observed (C-9) | observed (X-5) | not tried | not tried |
 | An untaken message can be cancelled | not tried | not tried | not tried | not tried |
 | A running turn can be interrupted | observed (C-10); also at a permission boundary (C-7) | not tried | not tried | not tried |
 | A new session can be started | not tried | not tried | not tried | not tried |
 | The sending session can be named for MCP | not tried | not tried | not tried | not tried |
 
-D-037 so far: the Claude desktop app has both of its rows observed and stays
-in v1. Codex Desktop has one of the two. Antigravity and DeepSeek Harness are
+D-037 so far: the Claude desktop app and Codex Desktop each have both of
+their rows observed and stay in v1. Antigravity and DeepSeek Harness are
 untried.
 
 ## Across clients
@@ -200,6 +200,41 @@ untried.
   `thread/queue/list`, `update`, `reorder`, `start`, and the notification
   `thread/queue/changed`. So cancelling an untaken message, interrupting a
   turn and starting a thread each have a named method to try.
+- **X-8. A permission request reaches a helper.** A `PermissionRequest`
+  entry in the test project's `.codex/hooks.json`, written as the reference
+  writes it on Windows (`command`, plus `commandWindows` holding a
+  PowerShell encoded command that starts the executable), started the
+  windowed logging program from a desktop thread whose approvals were
+  reviewed by the user. The owner asked for four commands that write outside
+  the workspace; the program was started once for each:
+
+  | Call | The helper's answer | What the thread's record shows |
+  | --- | --- | --- |
+  | 1 | Nothing, exit 0 | The app asked in its own window; the owner allowed and the command ran, 5 s in all. |
+  | 2 | Allow | The command ran; 1.3 s in all. |
+  | 3 | Allow, after holding 20 s | The command ran; 21.3 s in all. |
+  | 4 | Deny, with a message | The command failed in 0.5 s and the model was given the helper's message. |
+
+  Keys of the payload on standard input: `hook_event_name`, `session_id`,
+  `turn_id`, `transcript_path`, `cwd`, `model`, `permission_mode`,
+  `tool_name`, `tool_input`. The tool name was `Bash` although the command
+  was PowerShell. No suggested rules were offered.
+- **X-9. A hook runs only after the owner allows it in Codex.** The owner's
+  first run, in a thread already reviewed by the user, started the helper
+  not once. The owner then allowed the hook in Codex's own interface and
+  opened a new thread; that run is X-8. This is what the reference says:
+  Codex skips a hook it has not been told to trust, without a word.
+- **X-10. While the helper holds a request, Codex shows nothing.** During
+  the 20 s of call 3 the owner saw no approval prompt in the app, unlike
+  Claude (C-8). The app asks by itself only once the helper has exited
+  without an answer (call 1). So for Codex a request Rooom holds can be
+  answered nowhere else until Rooom lets go of it. Seen by the owner on
+  screen, not by command.
+- **X-11. What a Codex hook may answer.** Codex's source
+  (`codex-rs/hooks/src/schema.rs`, read through its published copy on
+  2026-11-11) takes `allow` or `deny` and an optional message. A rewritten
+  input, added permissions or an interrupt in the answer make the hook fail.
+  So through this hook there is no "allow for the session" and no interrupt.
 - **X-7. Who reviews approvals.** The test thread's `turn_context` had
   `approvals_reviewer` set to `auto_review`. The reference only takes a
   Codex permission request when that field is `user`; anything else stays
@@ -290,7 +325,8 @@ Rooom does not do it by itself.
    with the owner: the same entry in the user's own settings file.
 2. **Claude, words.** Done with a development module (C-9, C-10). Still to
    do with the owner: installing a plugin for every session.
-3. **Codex, words.** Done (X-5). Next for Codex, with the owner: a thread
-   whose approvals are reviewed by the user, for the request experiment.
+3. **Codex.** Words done (X-5), requests done (X-8). Still to do: cancel a
+   queued message, interrupt a turn and start a thread, through the methods
+   of X-6.
 4. **Antigravity and DeepSeek Harness.** Start each app with a test
    conversation open, so their live surfaces can be read.

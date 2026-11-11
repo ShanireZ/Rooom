@@ -147,7 +147,7 @@ Rules:
 | --- | --- | --- | --- | --- |
 | Sessions and state | Process registry (observed) | Thread records (observed) | Transcript files and the app's local service | Plugin check-ins |
 | Replies are read from | Session records (observed) | Thread records (observed) | Transcript files (observed) | Compressed session files (observed) |
-| Requests arrive by | `PermissionRequest` hook (observed); the app's own questions from the session log | The desktop app's pipe `codex-ipc`, as the reference does; its public observer is Unix-only | The app's local service, as the reference does | Plugin folder |
+| Requests arrive by | `PermissionRequest` hook (observed); the app's own questions from the session log | `PermissionRequest` hook in `hooks.json` (observed), once the owner has allowed it in Codex and for threads the user reviews; the desktop app's pipe for its other cards, not tried | The app's local service, as the reference does | Plugin folder |
 | Words are sent by | Plugin module and shared folder (observed) | Codex's queue, through the `codex queue` command of the executable the app bundles (observed) | The app's local service | Plugin and shared folder |
 | Cancel an untaken message | Expected | The protocol has `thread/queue/delete`; to try | To find out | Expected |
 | Interrupt a running turn | The plugin module cancels the turn (observed); a denial that interrupts at a permission boundary (observed) | The protocol has `turn/interrupt`; the reference does not offer it on Windows; to try | Not offered by the reference on Windows | To find out |
@@ -205,7 +205,9 @@ delegated check that could not read the hooks page to its end:
   defaults to allow.
 - **One place answers.** A request is answered by the owner in Rooom's
   interface or in the client's own window, whichever comes first; the other
-  card then disappears.
+  card then disappears. Observed for Claude. Codex shows no card of its own
+  while Rooom holds a request, so for Codex Rooom must be able to hand a
+  request back.
 - **Agent text is untrusted.** Markdown is rendered without raw HTML, scripts
   or remote loads, under a strict content security policy. A link shows its
   address and opens in the browser. A collapsed card shows the head and the
@@ -337,6 +339,8 @@ and `@tauri-apps/api` must stay on the same minor version.
 | 5 | `remark-gfm` for tables in Markdown: not in the approved dependency list. |
 | 6 | Which clients let Rooom read a session's permission mode, which one of D-033's four questions depends on. Observed so far: Claude, Codex and DeepSeek Harness do. |
 | 7 | A Zstandard decoder for DeepSeek Harness's session files: not in the approved dependency list. |
+| 8 | Codex and the ten-minute wait of D-034. While Rooom holds a Codex request nobody can answer it in Codex. Either a shorter wait for Codex, or a "hand back to Codex" action on the card, or both. |
+| 9 | "Allow for the session" (D-035) for Codex. Its hook cannot add a permission; the button is either disabled for Codex with the reason, or reached another way that is not yet tried. |
 
 ## Experiments before the interface promises anything
 
