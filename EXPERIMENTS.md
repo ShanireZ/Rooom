@@ -40,10 +40,10 @@ The two rows in bold are the ones D-037 judges a client by.
 | Sessions and their state can be read | observed (C-1) | observed (X-1) | not tried | not tried |
 | Replies can be read | observed (C-2) | observed (X-2) | observed (A-1) | observed (D-1) |
 | The permission mode can be read | observed (C-3) | observed (X-3) | not tried | observed (D-2) |
-| **Requests reach Rooom** | not tried | not tried | not tried | not tried |
+| **Requests reach Rooom** | observed (C-6) | not tried | not tried | not tried |
 | **Rooom's words reach the session** | not tried | not tried | not tried | not tried |
 | An untaken message can be cancelled | not tried | not tried | not tried | not tried |
-| A running turn can be interrupted | not tried | not tried | not tried | not tried |
+| A running turn can be interrupted | observed, at a permission boundary only (C-7) | not tried | not tried | not tried |
 | A new session can be started | not tried | not tried | not tried | not tried |
 | The sending session can be named for MCP | not tried | not tried | not tried | not tried |
 
@@ -52,6 +52,7 @@ The two rows in bold are the ones D-037 judges a client by.
 | Experiment | Result |
 | --- | --- |
 | A windowed-subsystem program works as a stdin/stdout helper | observed (G-1) |
+| A windowed helper started by the Claude desktop app as a hook | observed (C-6) |
 | The same with the real Tauri-sized executable, started by each client | not tried |
 | Cold start of the real executable, antivirus scan included | not tried |
 | An executable under a path with a space and non-ASCII characters starts | observed (G-2) |
@@ -90,8 +91,38 @@ The two rows in bold are the ones D-037 judges a client by.
   server started by the session gets the same was not checked, so the MCP
   row stays "not tried".
 - **C-5. Hooks in the Code tab.** Hooks supplied by installed plugins ran in
-  a desktop session: their output appeared in it. A hook entry in the user's
-  own settings file was not tried.
+  a desktop session: their output appeared in it.
+- **C-6. A permission request reaches a helper.** A `PermissionRequest`
+  entry in a test project's `.claude/settings.json`, written as the
+  reference writes it on Windows (an empty `matcher`, `command` naming an
+  executable, `args`, no shell), started a windowed-subsystem logging
+  program in a Code-tab session in `default` permission mode. The owner
+  asked the session for five `mkdir` commands; the program was started once
+  for each and answered in a fixed order:
+
+  | Call | The helper's answer | What the session's record shows |
+  | --- | --- | --- |
+  | 1 | Nothing, exit 0 | The client asked in its own window; the owner allowed after about 33 s and the command ran. |
+  | 2 | Allow | The command ran 0.3 s after it was requested. |
+  | 3 | Allow, after holding 20 s | The command ran 20 s after it was requested. |
+  | 4 | Deny, with a message | The tool result is an error carrying the helper's message; the turn went on to the next command. |
+  | 5 | Deny, with `interrupt` | The tool was rejected, the record gained an interruption entry, and the turn ended. |
+
+  Keys of the payload on standard input: `hook_event_name`, `session_id`,
+  `transcript_path`, `cwd`, `permission_mode`, `tool_name`, `tool_input`,
+  `permission_suggestions`, `prompt_id`, `effort`, `scratchpad_dir`. There
+  was no turn identifier and no tool-use identifier. The suggestions offered
+  for `mkdir` were a rule for the project's local settings, an added
+  directory for the session, and a mode change for the session.
+
+  A tool call that needed no permission, made in the same turn, did not
+  start the helper.
+- **C-7. Interrupting.** Call 5 above is the only interruption observed: it
+  works when the session is waiting on a permission request, and only then.
+- **Not yet tried for Claude requests.** The same entry in the user's own
+  settings file. An allow that adds a rule for the session only (D-035).
+  Questions and plans, which the reference also receives through this hook.
+  Whether the app shows its own card while the helper holds a request.
 
 ### Codex Desktop
 
@@ -194,9 +225,8 @@ says. One adds to it: this version of Harness compresses its session files.
 Each of these changes a client's settings or acts inside a live session, so
 Rooom does not do it by itself.
 
-1. **Claude, requests.** Add one `PermissionRequest` hook entry that starts a
-   logging helper, then run a tool call in a session that is not in `auto`
-   mode.
+1. **Claude, requests.** Done for a project-level entry (C-6). Still to do
+   with the owner: the same entry in the user's own settings file.
 2. **Claude, words.** Install a plugin whose module submits a prompt left in
    a folder.
 3. **Codex, words.** Run `codex queue` against a thread opened for the test.

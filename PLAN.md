@@ -147,10 +147,10 @@ Rules:
 | --- | --- | --- | --- | --- |
 | Sessions and state | Process registry (observed) | Thread records (observed) | Transcript files and the app's local service | Plugin check-ins |
 | Replies are read from | Session records (observed) | Thread records (observed) | Transcript files (observed) | Compressed session files (observed) |
-| Requests arrive by | `PermissionRequest` hook; the app's own questions from the session log | The desktop app's pipe `codex-ipc`, as the reference does; its public observer is Unix-only | The app's local service, as the reference does | Plugin folder |
+| Requests arrive by | `PermissionRequest` hook (observed); the app's own questions from the session log | The desktop app's pipe `codex-ipc`, as the reference does; its public observer is Unix-only | The app's local service, as the reference does | Plugin folder |
 | Words are sent by | Plugin module and shared folder | Codex's queue (`thread/queue/add`, or the `codex queue` command), or the desktop app's pipe | The app's local service | Plugin and shared folder |
 | Cancel an untaken message | Expected | To find out | To find out | Expected |
-| Interrupt a running turn | No documented way from outside; a denial can interrupt at a permission boundary | Not offered by the reference on Windows | Not offered by the reference on Windows | To find out |
+| Interrupt a running turn | A denial that interrupts, at a permission boundary only (observed) | Not offered by the reference on Windows | Not offered by the reference on Windows | To find out |
 | Start a new session | To find out | To find out | Not offered by the reference on Windows | Not offered by the reference |
 
 "Requests arrive" and "Words are sent" are the two rows D-037 judges a
