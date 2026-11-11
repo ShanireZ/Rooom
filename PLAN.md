@@ -378,8 +378,8 @@ verified against, reports an unknown version as unverified, and can be
 switched off on its own.
 
 1. **Experiments.** Results are kept in [EXPERIMENTS.md](EXPERIMENTS.md).
-   Done when no cell there reads "not tried":
-   `grep -c "not tried" EXPERIMENTS.md` prints 0. D-037 then decides which
+   Done when no table cell there reads "not tried":
+   `grep -o "| not tried" EXPERIMENTS.md | wc -l` prints 0. D-037 then decides which
    clients stay, from the two rows it names.
 2. **Skeleton.** The three build gates, the resident program, the strip and
    panel, tray, shortcut, the pipe, settings.
