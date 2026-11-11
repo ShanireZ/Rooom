@@ -148,7 +148,7 @@ Rules:
 | Sessions and state | Process registry (observed) | Thread records (observed) | The app's local service, found through its hub file (observed) | Plugin check-ins |
 | Replies are read from | Session records (observed) | Thread records (observed) | Transcript files (observed) | Compressed session files (observed) |
 | Requests arrive by | `PermissionRequest` hook (observed); the app's own questions from the session log | `PermissionRequest` hook in `hooks.json` (observed), once the owner has allowed it in Codex and for threads the user reviews; the desktop app's pipe for its other cards, not tried | The app's local service, polled for waiting steps (observed) | A plugin listening to `approval/request` (observed) |
-| Words are sent by | Plugin module and shared folder (observed) | Codex's queue, through the `codex queue` command of the executable the app bundles (observed) | The app's local service (observed) | Plugin and shared folder |
+| Words are sent by | Plugin module and shared folder (observed) | Codex's queue, through the `codex queue` command of the executable the app bundles (observed) | The app's local service (observed) | A plugin calling the session controller's `prompt` in queue mode (observed) |
 | Cancel an untaken message | Expected | The protocol has `thread/queue/delete`; to try | To find out | Expected |
 | Interrupt a running turn | The plugin module cancels the turn (observed); a denial that interrupts at a permission boundary (observed) | The protocol has `turn/interrupt`; the reference does not offer it on Windows; to try | Not offered by the reference on Windows | To find out |
 | Start a new session | To find out | The protocol has `thread/start`; to try | Not offered by the reference on Windows | Not offered by the reference |
@@ -340,7 +340,7 @@ and `@tauri-apps/api` must stay on the same minor version.
 | 6 | Which clients let Rooom read a session's permission mode, which one of D-033's four questions depends on. Observed so far: Claude, Codex and DeepSeek Harness do. |
 | 7 | A Zstandard decoder for DeepSeek Harness's session files: not in the approved dependency list. |
 | 8 | Codex and the ten-minute wait of D-034. While Rooom holds a Codex request nobody can answer it in Codex. Either a shorter wait for Codex, or a "hand back to Codex" action on the card, or both. |
-| 10 | Antigravity records a message sent through its service as the user's own words. D-033 and the MCP rules want an agent's message marked as an agent's. Either Rooom writes the sender into the text, or another call is found. |
+| 10 | Antigravity and DeepSeek Harness both record a message sent from outside as the user's own words. D-033 and the MCP rules want an agent's message marked as an agent's. Either Rooom writes the sender into the text, or another call is found. |
 | 9 | "Allow for the session" (D-035) for Codex. Its hook cannot add a permission; the button is either disabled for Codex with the reason, or reached another way that is not yet tried. |
 
 ## Experiments before the interface promises anything
@@ -383,6 +383,7 @@ verified against, reports an unknown version as unverified, and can be
 switched off on its own.
 
 1. **Experiments.** Results are kept in [EXPERIMENTS.md](EXPERIMENTS.md).
+   By D-037 all four clients stay in v1 (2026-11-11).
    Done when no table cell there reads "not tried":
    `grep -o "| not tried" EXPERIMENTS.md | wc -l` prints 0. D-037 then decides which
    clients stay, from the two rows it names.

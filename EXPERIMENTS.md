@@ -37,19 +37,17 @@ The two rows in bold are the ones D-037 judges a client by.
 
 | Capability | Claude desktop app | Codex Desktop | Antigravity | DeepSeek Harness |
 | --- | --- | --- | --- | --- |
-| Sessions and their state can be read | observed (C-1) | observed (X-1) | observed (A-7) | not tried |
+| Sessions and their state can be read | observed (C-1) | observed (X-1) | observed (A-7) | observed (D-7) |
 | Replies can be read | observed (C-2) | observed (X-2) | observed (A-1) | observed (D-1) |
 | The permission mode can be read | observed (C-3) | observed (X-3) | observed (A-9) | observed (D-2) |
 | **Requests reach Rooom** | observed (C-6) | observed (X-8) | observed (A-10) | observed (D-5) |
-| **Rooom's words reach the session** | observed (C-9) | observed (X-5) | observed (A-8) | not tried |
+| **Rooom's words reach the session** | observed (C-9) | observed (X-5) | observed (A-8) | observed (D-6) |
 | An untaken message can be cancelled | not tried | not tried | not tried | not tried |
 | A running turn can be interrupted | observed (C-10); also at a permission boundary (C-7) | not tried | not tried | not tried |
 | A new session can be started | not tried | not tried | not tried | not tried |
 | The sending session can be named for MCP | not tried | not tried | not tried | not tried |
 
-D-037 so far: the Claude desktop app, Codex Desktop and Antigravity each
-have both of their rows observed and stay in v1. DeepSeek Harness has one of
-the two.
+D-037: all four clients have both of their rows observed and stay in v1.
 
 ## Across clients
 
@@ -349,6 +347,26 @@ The app was not running during the survey.
   `session-<uuid>`, and an agent without a `parent` is a session the owner
   talks to. Three such sessions were announced by `agent/created`. Only
   field names and kinds were recorded, never values.
+- **D-6. Words reach a session through the plugin.** The stage 2 module,
+  asked through a control file, looked up the session controller when it
+  needed it (the lookup that found nothing at load time now succeeded) and
+  called its `prompt` with a request id, the session id, a mode of "queue"
+  and one text item. The call resolved within a second with `accepted`
+  true. The session's record then showed the text as a `user/message` and
+  the assistant's reply. Three messages were queued this way. The text is
+  recorded with a source of "user": nothing marks it as coming from outside.
+- **D-7. The session record is live.** The compressed session file is
+  rewritten as the session goes on: read seconds after a turn, it already
+  ended with that turn's `turn/end`. So turns can be followed from the file
+  while a session is open. Its `permission/preset`, `sandbox/mode` and
+  `approval/policy` lines were `workspace-write`, `workspace-write` and
+  `ask`.
+- **D-8. Answering an approval: not yet tested.** The module can return
+  "allowed-once" or "rejected" for a request, which is what the reference
+  returns, but no request arose while it was armed. A queued message asking
+  for a command inside the workspace ran it without asking; one asking for
+  a command outside the workspace ended without running it and without
+  asking. The four requests of D-5 came from messages the owner typed.
 - **D-3. Other files.** `~/.dsh/cordis.patch.yml` exists, beside
   `profiles/desktop/` and `mcp/`.
 
@@ -472,6 +490,6 @@ Rooom does not do it by itself.
    of X-6.
 4. **Antigravity.** State, words and requests done (A-7, A-8, A-10). Still
    to try: cancel, interrupt, starting a conversation.
-5. **DeepSeek Harness.** Stage 1 of its plan is done (D-4, D-5). Stage 2,
-   answering a request and queuing a message, changes the module and needs
-   the owner's word again.
+5. **DeepSeek Harness.** Stage 1 done (D-4, D-5); of stage 2, queuing a
+   message is done (D-6) and answering a request is not (D-8). The
+   experiment's block is still in the owner's patch file.
