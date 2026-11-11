@@ -122,7 +122,11 @@ The two rows in bold are the ones D-037 judges a client by.
 - **Not yet tried for Claude requests.** The same entry in the user's own
   settings file. An allow that adds a rule for the session only (D-035).
   Questions and plans, which the reference also receives through this hook.
-  Whether the app shows its own card while the helper holds a request.
+- **C-8. Both sides can answer.** During the 20 s of call 3 the owner saw the
+  desktop app show its own approval prompt as well; it went away when the
+  helper allowed. So while Rooom holds a request the client's own card is
+  live too, which is what the "one place answers" rule assumes. Seen by the
+  owner on screen, not by command.
 
 ### Codex Desktop
 
