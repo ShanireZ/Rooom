@@ -40,7 +40,7 @@ The two rows in bold are the ones D-037 judges a client by.
 | Sessions and their state can be read | observed (C-1) | observed (X-1) | observed (A-7) | not tried |
 | Replies can be read | observed (C-2) | observed (X-2) | observed (A-1) | observed (D-1) |
 | The permission mode can be read | observed (C-3) | observed (X-3) | observed (A-9) | observed (D-2) |
-| **Requests reach Rooom** | observed (C-6) | observed (X-8) | observed (A-10) | not tried |
+| **Requests reach Rooom** | observed (C-6) | observed (X-8) | observed (A-10) | observed (D-5) |
 | **Rooom's words reach the session** | observed (C-9) | observed (X-5) | observed (A-8) | not tried |
 | An untaken message can be cancelled | not tried | not tried | not tried | not tried |
 | A running turn can be interrupted | observed (C-10); also at a permission boundary (C-7) | not tried | not tried | not tried |
@@ -48,8 +48,8 @@ The two rows in bold are the ones D-037 judges a client by.
 | The sending session can be named for MCP | not tried | not tried | not tried | not tried |
 
 D-037 so far: the Claude desktop app, Codex Desktop and Antigravity each
-have both of their rows observed and stay in v1. DeepSeek Harness is
-untried.
+have both of their rows observed and stay in v1. DeepSeek Harness has one of
+the two.
 
 ## Across clients
 
@@ -332,6 +332,23 @@ The app was not running during the survey.
   session that is still open keeps an uncompressed file was not seen.
 - **D-2. Permission mode.** The record has `permission/preset`,
   `sandbox/mode` and `approval/policy` lines.
+- **D-4. A plugin loads from the patch file.** One more top-level
+  `- insert:` item, added by the owner at the end of `cordis.patch.yml`
+  while Harness was closed, naming a module file by its path and giving it
+  a `config`. Before Harness was started the file was checked to be the
+  original followed by that block. Harness started normally and loaded the
+  module: its `apply(ctx, config)` ran, and `ctx.on` accepted listeners
+  for `approval/request`, `user-questions/request`, `agent/created` and
+  `agent/disposed`. A lookup of the session controller at load time found
+  nothing; the reference looks it up only when it is used.
+- **D-5. Approval requests reach the module.** The observe-only module was
+  called four times with an approval request and passed each on untouched;
+  the owner answered in Harness and the command ran. A request has the
+  fields `agent`, `toolName`, `callId`, `reason`, `displayReason` (one text
+  per language, eight of them) and `signal`. The agent's `id` has the form
+  `session-<uuid>`, and an agent without a `parent` is a session the owner
+  talks to. Three such sessions were announced by `agent/created`. Only
+  field names and kinds were recorded, never values.
 - **D-3. Other files.** `~/.dsh/cordis.patch.yml` exists, beside
   `profiles/desktop/` and `mcp/`.
 
@@ -455,6 +472,6 @@ Rooom does not do it by itself.
    of X-6.
 4. **Antigravity.** State, words and requests done (A-7, A-8, A-10). Still
    to try: cancel, interrupt, starting a conversation.
-5. **DeepSeek Harness.** Its experiment loads a plugin into the owner's
-   Harness through its patch file. A mistake there can stop Harness from
-   starting, so it waits for a written recovery plan and the owner's word.
+5. **DeepSeek Harness.** Stage 1 of its plan is done (D-4, D-5). Stage 2,
+   answering a request and queuing a message, changes the module and needs
+   the owner's word again.
