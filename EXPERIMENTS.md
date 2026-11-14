@@ -42,10 +42,10 @@ The two rows in bold are the ones D-037 judges a client by.
 | The permission mode can be read | observed (C-3) | observed (X-3) | observed (A-9) | observed (D-2) |
 | **Requests reach Rooom** | observed (C-6) | observed (X-8) | observed (A-10) | observed (D-5) |
 | **Rooom's words reach the session** | observed (C-9) | observed (X-5) | observed (A-8) | observed (D-6) |
-| An untaken message can be cancelled | not tried | not tried | not tried | not tried |
-| A running turn can be interrupted | observed (C-10); also at a permission boundary (C-7) | not tried | not tried | not tried |
-| A new session can be started | not tried | not tried | not tried | not tried |
-| The sending session can be named for MCP | not tried | not tried | not tried | not tried |
+| An untaken message can be cancelled | failed in the Desktop trial (C-20); observed in the isolated engine (C-16) | observed (X-15) | observed (A-15) | observed (D-11, isolated Desktop Host) |
+| A running turn can be interrupted | observed (C-10); also at a permission boundary (C-7) | observed (X-16) | observed (A-16) | observed (D-12, isolated Desktop Host) |
+| A new session can be started | observed (C-15, CLI seed and Desktop import) | observed (X-14) | observed (A-14) | observed (D-10, isolated Desktop Host) |
+| The sending session can be named for MCP | observed (C-14, Desktop Code tab) | observed (X-17, bundled app-server) | observed (A-13, Desktop) | observed (D-16, isolated Desktop Host) |
 
 D-037: all four clients have both of their rows observed and stay in v1.
 
@@ -64,7 +64,7 @@ D-037: all four clients have both of their rows observed and stay in v1.
 | The panel opens without taking focus, then takes it for typing | not tried |
 | Capture exclusion in meeting and recording programs | not tried |
 | The pipe name with two Windows sessions of one user | not tried |
-| A plugin-only path for Claude permission requests | not tried |
+| A plugin-only path for Claude permission requests | observed (C-19, Desktop refusal) |
 
 ## Observations
 
@@ -89,9 +89,9 @@ D-037: all four clients have both of their rows observed and stay in v1.
   in another mode.
 - **C-4. What a child process is told.** A shell started by the session has
   `CLAUDE_CODE_SESSION_ID`, `CLAUDE_CODE_ENTRYPOINT` (`claude-desktop`) and
-  `CLAUDE_CODE_DESKTOP_APP_VERSION` in its environment. Whether an MCP
-  server started by the session gets the same was not checked, so the MCP
-  row stays "not tried".
+  `CLAUDE_CODE_DESKTOP_APP_VERSION` in its environment. For the MCP relay,
+  C-13 covers the bundled binary in CLI mode and C-14 covers the Desktop
+  Code tab.
 - **C-5. Hooks in the Code tab.** Hooks supplied by installed plugins ran in
   a desktop session: their output appeared in it.
 - **C-6. A permission request reaches a helper.** A `PermissionRequest`
@@ -154,6 +154,98 @@ D-037: all four clients have both of their rows observed and stay in v1.
 - **C-12. What the module cannot do.** Its file access reads, writes, lists
   and checks existence; it has no delete. A delivery file therefore has to be
   removed by Rooom once the module marks it taken (D-036).
+
+- **C-13. Claude Code gives its MCP relay the CLI session ID.** In
+  two independent runs, the Desktop-distributed Claude Code 2.1.321
+  executable was started in CLI mode with a temporary `CLAUDE_CONFIG_DIR`,
+  `--strict-mcp-config`, and an isolated local model endpoint. Each run
+  used two different `--session-id` values. Each MCP tool call had empty
+  arguments and its relay's `CLAUDE_CODE_SESSION_ID` matched the
+  corresponding CLI session exactly. The two sessions launched separate
+  relay processes. The `_meta` keys were `claudecode/toolUseId` and
+  `progressToken`.
+  [Reference sender metadata](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/apps/mcp/README.md#L26)
+- **C-14. The Desktop Code tab gives its MCP relay the session ID.** The
+  owner configured a probe in a test project. Two local Code-tab sessions
+  each called `identify` once with a distinct fixed `case` marker as its
+  only argument. They started separate relay processes. Both received
+  `CLAUDE_CODE_ENTRYPOINT=claude-desktop`. Each relay's
+  `CLAUDE_CODE_SESSION_ID` matched the ID in the filename of a separate
+  project transcript. Each transcript had its own marker and only its own
+  marker in the user events. The `_meta` keys were `claudecode/toolUseId`
+  and `progressToken`.
+- **C-15. A new local session can be created and imported into the
+  Desktop Code tab.** Claude Code 2.1.325 ran in stream-JSON print mode
+  with a fresh session ID, an empty test workspace and a loopback model
+  fixture. The first fixed reply was recorded and the creator exited.
+  Opening `claude://resume?session=<id>` through Windows made Desktop
+  5.11492.5 create its own `local_<id>` record. Its CLI session ID and
+  workspace matched the seed and it was marked as imported from a CLI
+  transcript. The reference starts a background job and uses this
+  same link after stopping the job.
+  [Reference handoff](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/crates/platform/src/delivery/starts/handoff.rs#L116)
+- **C-16. The bundled engine can withdraw one pending prompt.** A
+  stream-JSON session on Claude Code 2.1.325 held its first model
+  response on a local fixture. Two further inputs were sent with distinct
+  UUIDs. A `cancel_async_message` control request for one UUID returned
+  `cancelled: true` while the first reply was still held. On releasing
+  the holder, the other queued prompt ran and got its fixed reply. The
+  removed prompt never reached the model. Desktop 5.11492.5 implements
+  a renderer-scoped `cancelQueuedMessage` handler and its SDK client
+  sends this engine request. C-20 covers a separate trial of Desktop's
+  queue. The reference withdraws requests from its plugin delivery
+  folder before they are taken.
+  [Reference queued delivery](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/docs/agent-messages.md#L15)
+- **C-17. A plugin can hold the bundled engine's permission decision.**
+  The 2.1.325 stream-JSON engine ran with an isolated profile and
+  the probe supplied through `--plugin-dir`. A module's
+  `tool.check` handler awaited a loopback decision endpoint for
+  11 s on each of two `Write` calls for which the engine's underlying
+  decision was `ask`. Neither test file existed while the decision
+  was held. With denial it remained absent, and with
+  allowance a new file appeared. There was no settings-file
+  `PermissionRequest` hook. The decisions were fixture responses.
+  C-19 covers the Desktop Code tab's plugin dialog and refusal.
+  [Reference settings-hook route](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/crates/agents/src/claude/hooks.rs#L5)
+  [Claude Code mod events](https://code.claude.com/docs/en/plugins/mods/events#approve-or-refuse-a-tool-call-before-the-user-is-asked)
+- **C-18. The first Desktop permission attempt used the native card.**
+  On Desktop 5.11492.5 with Claude Code 2.1.325, the owner placed the
+  probe under the test workspace's `.claude/skills/` and submitted
+  the fixed prompt to the imported session. Its one `Write` call
+  matched the expected path and content. The owner chose Deny, the
+  matching tool result recorded the native refusal, and the test file
+  stayed absent. The probe matched the supplied files on disk, but its
+  pending and decision markers were both absent. The transcript then
+  recorded a successful `/reload-plugins` command and a second matching
+  `Write` request. The owner reported only Desktop's native options:
+  Deny, Allow once, and Allow and switch to auto. No plugin marker
+  appeared on the retry. The cause of the project copy's failure to
+  intercept was not established. C-19 covers the user-directory copy.
+  [Claude Code plugin reload](https://code.claude.com/docs/en/plugins/cli-reference#reload-plugins)
+- **C-19. A plugin holds a tool decision in the Desktop Code tab.**
+  On Desktop 5.11492.5 with Claude Code 2.1.325, the owner loaded a
+  mod from the user's skills directory and reloaded plugins in the
+  disposable session. The mod matched the session ID, workspace,
+  and exact `Write` target and content. Its `tool.check` handler
+  recorded a pending marker and awaited `$.ui.ask`. The owner saw the
+  mod's question and chose to refuse. Its decision marker followed the
+  pending marker by 23.32 s. The exact call had one matching error
+  result carrying the mod's refusal reason; the target file was absent.
+  The probe supplied only a mod module and used no settings-file
+  `PermissionRequest` hook. The allow branch was exercised in the
+  isolated engine in C-17.
+  [Claude Code mod decision handling](https://code.claude.com/docs/en/plugins/mods/events#approve-or-refuse-a-tool-call-before-the-user-is-asked)
+- **C-20. A Desktop queue withdrawal did not prevent delivery in this
+  trial.** On Desktop 5.11492.5 with Claude Code 2.1.325, the owner
+  reported removing DROP from the queue and receiving the KEEP reply.
+  The test transcript had a separate enqueue record for each marker
+  while the previous turn was still running, followed by two dequeues.
+  One subsequent user message contained both prompts. Its message
+  blob contained both markers and was referenced by the next SDK
+  model request. A descendant assistant message replied with the
+  KEEP marker. The precise timing of the owner's removal action
+  relative to dequeue was unavailable, so the trial does not establish
+  which part of the Desktop queue path allowed DROP through.
 
 ### Codex Desktop
 
@@ -237,6 +329,90 @@ D-037: all four clients have both of their rows observed and stay in v1.
   `approvals_reviewer` set to `auto_review`. The reference only takes a
   Codex permission request when that field is `user`; anything else stays
   with the client. The request experiment needs a thread set that way.
+- **X-12. Isolated Windows app-server: thread creation and queued-message
+  removal.** In a fresh `CODEX_HOME` with `codex-cli` 0.162.1, the probe
+  connected over stdio and opted in with `experimentalApi: true`. With
+  `ephemeral: false`, `thread/start` returned a thread id. After the
+  creator exited, `thread/queue/add` failed with `no rollout found` for
+  the new unnamed thread. For a second thread, calling `thread/name/set`
+  before the creator exited made the thread readable with zero turns and
+  let a separate process add two queued messages. A third process listed
+  both, got `deleted: true` when deleting one by its `queuedSubmissionId`,
+  and could not delete that id again. After it exited, a fourth process
+  still listed only the other message. This checks the persistence step
+  in the reference's
+  [start sequence](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/crates/platform/src/delivery/starts/clients.rs#L61).
+  The bundled executable repeated these isolated results. X-14 and X-15
+  cover the Desktop runs.
+- **X-13. Isolated Windows app-server: interrupt is local to the turn's
+  owner in this test.** In the same isolated setup a synthetic turn
+  reached `inProgress` with the provider pointed at an unavailable
+  loopback endpoint. A second app-server sharing the same home rejected
+  `turn/interrupt` for the exact thread and turn. The owner app-server
+  accepted it and emitted `turn/completed` with status `interrupted` for
+  that turn. The reference
+  [Windows adapter](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/crates/platform/src/delivery/codex/windows.rs)
+  exposes no interrupt. This probe never connected to the Desktop
+  owner pipe. X-16 covers an interrupt through that pipe.
+- **X-14. A new thread opens in Codex Desktop.** On Desktop
+  26.1103.7773.0 with its bundled `codex-cli` 0.167.0-alpha.3.2,
+  `thread/start` and `thread/name/set` made one thread in a test folder.
+  Queuing while the creator still held the thread let that process take the
+  first message. Its turn ended interrupted when the creator exited. For
+  the second attempt, a separate app-server queued the test message after
+  the creator exited, following the reference's start sequence.
+  After `codex://threads/wake/<id>` the app reported the thread idle,
+  but owner discovery returned `no-client-found` and the message
+  remained queued. The normal `codex://threads/<id>` link then made
+  owner discovery succeed. The discovered owner accepted
+  `thread-follower-start-turn` (version 2) for the new thread and
+  returned its turn id. Starting a thread and opening it in Desktop
+  worked. X-18 covers a dedicated wake-only run.
+  [Reference start sequence](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/crates/platform/src/delivery/starts/clients.rs#L61).
+- **X-15. An untaken message can be withdrawn from a Desktop-owned
+  thread.** While the X-14 test turn ran, a second app-server added two
+  messages to its queue. A `thread-follower-remove-queued-message`
+  request got a success envelope, but both items still appeared in the
+  next `thread/queue/list`. With Desktop still owning the thread after
+  the turn stopped, an app-server called `thread/queue/delete` with
+  the exact `queuedSubmissionId`. It returned `deleted: true` and a
+  fresh process listed only the control item. The thread record showed
+  zero turns from the cancelled message. The control item was then removed, and a
+  fresh process confirmed the test queue was empty.
+- **X-16. The Desktop owner can interrupt a running turn.** The pipe
+  server's process token matched the caller's user and its executable
+  was the installed Desktop app. The reference's Windows adapter offers
+  start, steer and queue operations. This Desktop version registers `thread-follower-interrupt-turn`
+  in the installed app archive (`.vite/build/early-bootstrap.js`
+  and its renderer bundle). A version 4 request to the discovered
+  owner named the conversation and its exact `expectedTurnId` with
+  mode `system`. The owner replied successfully. Desktop read-back
+  reported that exact test turn `interrupted` after 3.2 s.
+  [Reference Windows adapter](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/crates/platform/src/delivery/codex/windows.rs).
+
+- **X-17. The Desktop app-server gives the MCP relay thread and turn
+  identity.** Two independent runs started the executable bundled with
+  Codex Desktop 26.1103.7773.0 (`codex-cli` 0.167.0-alpha.3.2) in an
+  isolated `CODEX_HOME`, using a local model fixture. Two ephemeral
+  threads each ran one turn and invoked the same stdio MCP tool with
+  empty arguments. In all four calls, `_meta.threadId` and
+  `_meta["x-codex-turn-metadata"].turn_id` matched the IDs returned by
+  `thread/start` and `turn/start`. Both turns completed in each run.
+  The test used the bundled engine over stdio.
+  [Reference sender metadata](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/apps/mcp/README.md#L26)
+- **X-18. A wake-only link delivers the first queued message.** With
+  Windows Codex Desktop 26.1103.7773.0 already running, two trials each
+  created and named a new empty thread using the bundled `codex-cli`
+  0.167.0-alpha.3.2. The creator exited before a second app-server
+  enqueued one fixed text message and exited. After an 8 s baseline,
+  each queue held one message and its rollout had zero turns. The
+  probe opened only `codex://threads/wake/<id>` through Windows. The
+  first `task_started` and the matching user message were visible in
+  the rollout 4.1 s and 3.2 s after the wake command returned. Both
+  turns returned their exact reply markers, recorded `task_complete`,
+  and left empty queues. Both test threads were archived through
+  Desktop after measurement.
+  [Reference start sequence](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/crates/platform/src/delivery/starts/clients.rs#L89)
 
 ### Antigravity
 
@@ -315,11 +491,65 @@ The app was not running during the survey, so only files were seen.
 - **A-5. Plugins.** `agy plugin` lists `install`, `import` ("from gemini or
   claude"), `enable`, `disable` and `validate`. Not tried.
 - **A-2. Command line.** `agy --help` lists `--conversation <id>`,
-  `--continue`, `--print`, and a `plugin` subcommand. None was run.
+  `--continue`, `--print`, and a `plugin` subcommand. A-12 covers the
+  isolated attempt with `--print`.
+- **A-12. The isolated launch stopped before a tool call.** The
+  installed `agy` 1.0.3 listed the probe's MCP tool but fell back to
+  account sign-in before the conversation reached the local model
+  fixture. The Desktop language server 2.29.0 in standalone mode also
+  waited for sign-in. No `tools/call` was observed. The installed
+  language server contains the `antigravity.google/conversation_id`
+  metadata key. A-13 covers the live Desktop calls.
+  [Reference sender metadata](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/apps/mcp/README.md#L26)
+- **A-13. Antigravity Desktop identifies callers on a shared relay.** The
+  owner configured a local probe. Two Desktop conversations each called
+  `identify` once with a distinct fixed `case` marker as its only argument.
+  Both calls reached the same relay process. The values of
+  `_meta["antigravity.google/conversation_id"]` differed and each matched
+  the directory ID of a transcript whose `USER_INPUT` events contained only
+  its own test marker. `_meta` also had `antigravity.google/root_conversation_id`,
+  `antigravity.google/artifacts_dir` and `progressToken`.
+- **A-14. A session can be started through the Windows Desktop service.**
+  Antigravity Desktop and its hub both reported 2.31.0. The probe confirmed
+  that the loopback listener belonged to the installed language server
+  and verified it with `GetUserStatus`. `StartCascade` returned HTTP
+  200 and a fresh ID using the interactive cascade source and the file
+  URI of an empty test folder. `GetAllCascadeTrajectories` listed the ID
+  as idle with the expected workspace. `SendUserCascadeMessage` then
+  ran its first turn, and the transcript recorded one matching input and
+  one reply with the requested marker.
+  [Reference start sequence](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/crates/platform/src/delivery/antigravity/mod.rs#L101)
+- **A-15. One pending message can be withdrawn.** While a test turn
+  was running, two distinct text messages were sent with
+  `MESSAGE_DELIVERY_STRATEGY_WHEN_IDLE`. `GetCascadeTrajectory` omitted
+  pending inputs during the baseline run. On the installed 2.31.0
+  Desktop service, `StreamAgentStateUpdates` exposed both messages
+  under `pendingAgentMessagesUpdate`. The probe matched each entry to
+  its fixed test marker. The installed Desktop front end sends
+  `DeleteAgentMessage` with the recipient cascade and the pending
+  entry's ID. The same call returned HTTP 200 and a fresh stream
+  snapshot showed only the control entry with its original ID while the
+  holder turn was still running. After delivery, the transcript contained
+  zero user steps for the withdrawn marker and one user step and one
+  reply for the control. The reference's Windows path sends the
+  when-idle strategy to the same owner service.
+  [Reference Windows send path](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/crates/platform/src/delivery/antigravity/windows.rs#L23)
+- **A-16. A running invocation can be interrupted through the Windows
+  Desktop service.** The probe waited for the isolated test turn's input
+  and `CASCADE_RUN_STATUS_RUNNING`, then sent
+  `CancelCascadeInvocation` with its cascade ID and an empty queue. The
+  service returned HTTP 200. The next read, 76 ms after starting the
+  cancel call, showed `CASCADE_RUN_STATUS_IDLE` with
+  `EXECUTOR_TERMINATION_REASON_USER_CANCELED`. The stopped turn added no
+  planner reply. This measured interruption of the invocation. The
+  probe did not measure termination of an already running terminal
+  command. The reference issues this RPC on Unix. The Windows test
+  addressed the verified Desktop owner directly.
+  [Reference cancel call](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/crates/platform/src/delivery/antigravity/unix.rs#L12)
 
 ### DeepSeek Harness
 
-The app was not running during the survey.
+The initial file survey ran with the app closed.
 
 - **D-1. Session records.**
   `~/.dsh/sessions/<project>/<session>/session.v4.jsonl.zstd`: JSON lines
@@ -369,7 +599,8 @@ The app was not running during the survey.
   command ran. The owner saw no approval prompt at all, in any mode: the
   module had answered before Harness showed one. So while a plugin answers
   at once the app's own card never appears; what the app shows while a
-  plugin holds a request was not observed. Denying is not tested.
+  plugin holds a request was not observed in this run. D-15 covers both
+  the hold and a denial in the Desktop window.
   The control case followed: with nothing armed, the next request in the
   read-only preset was passed on by the module, Harness showed its own
   prompt, and the owner allowed it there six seconds later. So a plugin that
@@ -381,6 +612,100 @@ The app was not running during the survey.
   mode read `danger-full-access` and nothing was asked.
 - **D-3. Other files.** `~/.dsh/cordis.patch.yml` exists, beside
   `profiles/desktop/` and `mcp/`.
+- **D-10. The Desktop Host can create a session.** Two runs used the
+  installed 0.2.2-rc.1 Desktop executable in Electron Node mode with its
+  bundled `@deepseek-ai/dsh-desktop-host/lib/index.js`. The host reported
+  `ready` over IPC with a fresh Harness home and a synthetic desktop
+  profile composed from the shipped `dsh-base` and `dsh-web-app` bundles.
+  A probe loaded from the isolated patch waited for `sessionController`,
+  called `create({ cwd })`, and got a `session-<uuid>` for the test
+  directory. The controller admitted a queued prompt into that session.
+  The probe held the real turn at `agent/pre-step` so the run needed
+  neither a model response nor a real account. Desktop window navigation
+  and the owner's normal profile startup remain to be checked.
+  [Harness session controller](https://deepseek-harness.github.io/deepseek-harness/en/reference/subsystems/session#ctx-sessioncontroller-sessioncontroller)
+- **D-11. An untaken item can be removed from the native inbox.** With
+  the turn held, two `prompt({ mode: "queue" })` calls were accepted and
+  the controller's `state` returned two distinct item IDs. Calling
+  `updateQueue({ sessionId, itemId, action: { kind: "remove" } })`
+  returned `accepted: true`. The next read showed only the control item.
+  A repeat removal was rejected. The reference's sidecar withdraws a
+  delivery before its plugin hands it to Harness. This run verified
+  removal from the Harness inbox after controller admission and before
+  turn claim.
+  [Reference plugin](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/crates/platform/src/deepseek_plugin/agent-hud.mjs#L140)
+- **D-12. The running turn can be interrupted.** While the held
+  turn was still running, `sessionController.cancel({ sessionId })`
+  returned `accepted: true` and its pre-step signal was aborted with
+  reason `user`. The session went idle and the control item remained
+  pending. After host shutdown, an independent read of
+  `session.v4.jsonl.zstd` confirmed one `turn/end` with outcome
+  `aborted` and cause `user`. The interrupted turn was held before
+  model streaming or tool execution.
+- **D-13. A plugin denial reaches the approval audit log.** Inside
+  the held turn, the probe issued one synthetic approval request
+  through the installed approval service. The plugin answered
+  `rejected`. The controller event page and the compressed file after
+  shutdown both held one `approval/asked` and a matching
+  `approval/decided` with outcome `rejected`. The approval service
+  and persistence are verified. A real tool's denied execution and
+  the app card's behavior while the plugin holds or races an answer
+  still need a Desktop window test.
+- **D-14. A plugin denial blocks a PowerShell call before dispatch.**
+  The installed Desktop Host ran an isolated read-only session. A
+  profile-scoped probe requested approval for two exact `pwsh`
+  calls that print fixed text. In the race case the probe delegated
+  to a stand-in native answerer immediately and returned `rejected`
+  after 180 ms. The stand-in received cancellation, the tool returned
+  a refusal, and the probe saw neither dispatch nor the test output.
+  In the control case it held for 100 ms, then delegated. The
+  stand-in allowed that call once and the real tool printed the control
+  text. The same probe is prepared for the Desktop window with 15 s
+  and 5 s waits. Native card visibility remains an operator observation.
+  [Reference approval race](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/crates/platform/src/deepseek_plugin/agent-hud.mjs#L277)
+- **D-15. A native card appears while the plugin waits.** The owner ran
+  the two D-14 cases in one disposable Desktop session. In the race case
+  the probe delegated after 1 ms, and the owner saw the native approval
+  card during the wait. The probe answered `rejected` after 15,002 ms.
+  It logged a tool error, zero `pwsh` dispatches and zero matching
+  output for that attempt. The timestamp measures the plugin decision;
+  the renderer's exact dismissal time was not measured. In the control
+  case the probe delegated after 5,012 ms. The owner saw the native card
+  and allowed the call once. The probe recorded one dispatch and the
+  expected PowerShell output. An independent read of the test session's
+  compressed log matched both approval pairs by ID: `rejected`, then
+  `allowed-once`. The two outer `run_code` calls settled with an error
+  and success, respectively. The owner then removed the profile patch
+  block; its original bytes were verified.
+- **D-16. A Harness plugin can identify the MCP caller.** Two independent
+  runs used the installed 0.2.2-rc.1 Desktop Host with a fresh profile,
+  its bundled `@deepseek-ai/dsh-mcp-client`, and a local stdio probe
+  relay. Two root sessions in the same folder called the real tool
+  executor. One relay process served both; its parent PID matched the
+  plugin host. The `tools/call` params carried only `name` and
+  `arguments`, with no `_meta`. Neither test session ID appeared in the
+  relay environment or in the wire data outside tool arguments.
+  A call without a plugin note remained unattributed.
+
+  The probe plugin used the `tools/execute` event's `agent.id`. It
+  published a note before dispatch and removed it when the call settled.
+  The relay matched its parent, the tool and the arguments to one
+  outstanding note. Identical arguments in sequential calls identified
+  each session correctly. Concurrent calls with different arguments
+  both resolved to the right session, including a call whose argument
+  claimed the other session's ID. Concurrent calls with identical
+  arguments produced two candidates and both were refused as ambiguous.
+  When the probe admitted identical calls one at a time, the relay
+  returned the correct identity to both callers. No notes remained
+  after either run. The two personal patch files had identical hashes
+  before and after the isolated tests.
+  [Reference MCP relay](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/apps/mcp/README.md#L26)
+  [Reference Harness plugin](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/crates/platform/src/deepseek_plugin/agent-hud.mjs#L215)
+- **D-17. The normal Desktop profile starts after probe removal.**
+  The owner opened Harness with both temporary blocks removed and
+  confirmed the main window loaded. A read-only check found no Rooom
+  test block in either patch. The home patch still matched its pre-test
+  content apart from the already recorded trailing LF difference.
 
 ### Across clients
 
@@ -495,13 +820,29 @@ Rooom does not do it by itself.
 
 1. **Claude, requests.** Done for a project-level entry (C-6). Still to do
    with the owner: the same entry in the user's own settings file.
-2. **Claude, words.** Done with a development module (C-9, C-10). Still to
-   do with the owner: installing a plugin for every session.
-3. **Codex.** Words done (X-5), requests done (X-8). Still to do: cancel a
-   queued message, interrupt a turn and start a thread, through the methods
-   of X-6.
-4. **Antigravity.** State, words and requests done (A-7, A-8, A-10). Still
-   to try: cancel, interrupt, starting a conversation.
-5. **DeepSeek Harness.** Both stages done (D-4 to D-8), except a denial.
-   The experiment has ended: the owner removed its block, the patch file was
-   checked to hold its original lines again, and the modules were deleted.
+2. **Claude.** Words were observed with a development module (C-9, C-10).
+   The MCP relay identified two Desktop Code-tab sessions (C-14).
+   A new session was seeded and imported into Desktop (C-15). The owner
+   refused a call in the plugin's own Desktop decision dialog (C-19).
+   Both prompts reached the model in the Desktop queue withdrawal
+   trial (C-20).
+   Loading a plugin in every session has not been verified.
+3. **Codex.** Words (X-5), requests (X-8), opening a new thread (X-14),
+   withdrawing a queued message (X-15) and interrupting (X-16) were
+   observed. The bundled Desktop app-server identified its MCP caller
+   (X-17). A wake-only link delivered the first queued message to each
+   of two new threads with Desktop already running (X-18).
+4. **Antigravity.** State, words and requests were observed (A-7, A-8, A-10).
+   The MCP relay identified two Desktop conversations (A-13). The
+   Windows Desktop service created a conversation, withdrew a pending
+   message and interrupted an invocation (A-14 to A-16).
+5. **DeepSeek Harness.** The owner removed the original probe block (D-4
+   to D-8). The isolated Desktop Host verified creation, queue withdrawal,
+   interrupt and a synthetic denial (D-10 to D-13). The preflight
+   verified rejection and dispatch using the native PowerShell tool
+   with a stand-in answerer (D-14). In the Desktop window, the owner saw
+   the native approval card during the race and after the delayed
+   handoff. The denied command did not dispatch and the control ran
+   (D-15). The installed Desktop Host and its actual stdio MCP client
+   identified two callers through a probe plugin (D-16). The owner
+   confirmed the normal Desktop launch after removal (D-17).
