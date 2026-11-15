@@ -1,6 +1,6 @@
 # Rooom — plan and decisions
 
-Status: **milestone 1 complete, milestone 2 started on 2026-11-15**. The
+Status: **milestones 1 and 2 complete on 2026-11-15**. The
 owner approved the design on 2026-11-11. [EXPERIMENTS.md](EXPERIMENTS.md)
 holds the observed results. "Open" holds the remaining product decisions.
 The owner directed the first batch of milestone 2 on 2026-11-15.
@@ -395,9 +395,9 @@ switched off on its own.
    prints `0`. For each of the four Desktop clients both D-037 rows
    were observed. All four stay in v1, subject to the capability and
    version checks in this plan.
-2. **Skeleton. Local acceptance complete on 2026-11-15.** The resident
-   program, strip and panel, tray, shortcut, pipe and settings.
-   The hosted Windows build gate is pending.
+2. **Skeleton. Complete on 2026-11-15.** The resident program, strip and
+   panel, tray, shortcut, pipe and settings passed local acceptance.
+   The hosted Windows gate passed on both required events.
 3. **The adapters, in parallel** (D-006), with the timeline, request cards
    and the composer.
 4. **Agent messages** through MCP, with the three modes of D-033.
@@ -493,7 +493,7 @@ frontend snapshot test. The Docker gate passed four core tests.
 confirmed the configured edge and capture affinity, and the WebView
 reported strip, panel and strip again in the same window. Each case
 exited successfully through the tray quit handler. The Windows
-workflow passed local `actionlint`. Hosted CI is still pending.
+workflow passed local `actionlint` during the first batch.
 D-050 now uses `tsc` 7.1.0-beta to check and emit all frontend source in
 `src/`. Vite bundles the emitted JavaScript. The snapshot test imports
 the compiler output, and the development server recompiles edited
@@ -524,5 +524,12 @@ LocalSystem probe received `ERROR_ACCESS_DENIED` (5). The full command
 matched the guest receipt to the SHA-256 of the statically linked
 probe. This check covers the transport across two Windows sessions.
 
-Milestone 2 is done when the full Windows resident suite and all three
-build gates pass for the same implementation and lockfiles.
+Hosted Windows verification passed for implementation commit
+`fc055864d180919eefde7932be54e9ed1b92f98a` on 2026-11-15. Both
+`build` jobs reported success for the `Build and test` step of
+`.github/workflows/windows.yml`.
+
+- `push` on `verify/milestone-2`.
+  [Windows run 43684743144](https://github.com/ShanireZ/Rooom/actions/runs/43684743144)
+- `pull_request` on [draft PR #1](https://github.com/ShanireZ/Rooom/pull/1).
+  [Windows run 43684763201](https://github.com/ShanireZ/Rooom/actions/runs/43684763201)
