@@ -1,0 +1,114 @@
+@layer tokens, utilities, components, accessibility;
+@import "tailwindcss/theme.css" layer(tokens);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@layer tokens {
+  :root {
+    color-scheme: light dark;
+    --background: light-dark(#f7f9fa, #192329);
+    --foreground: light-dark(#16262c, #eaf2f3);
+    --muted-foreground: light-dark(#526872, #a7bac3);
+    --border: light-dark(#d4e0e3, #3b4b53);
+    --primary: light-dark(#254a59, #234554);
+    --primary-foreground: light-dark(#f7f6ee, #f7f6ee);
+    --ring: light-dark(#1d7584, #8ad8df);
+  }
+}
+
+@layer components {
+  * { box-sizing: border-box; }
+
+  html, body, #root, .rm-shell {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    font: 14px/1.45 system-ui, sans-serif;
+    color: var(--foreground);
+    background: var(--background);
+  }
+
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .rm-strip {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    color: var(--primary-foreground);
+    background: var(--primary);
+  }
+
+  .rm-strip-mark {
+    width: 3px;
+    height: 24px;
+    border-radius: 10px;
+    background: currentColor;
+  }
+
+  [data-edge="top"] .rm-strip-mark,
+  [data-edge="bottom"] .rm-strip-mark {
+    width: 24px;
+    height: 3px;
+  }
+
+  [data-surface="panel"] {
+    padding: 16px 20px;
+    border: 1px solid var(--border);
+    overflow: auto;
+  }
+
+  .rm-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+
+    & h1 {
+      font-size: 18px;
+      font-weight: 650;
+      margin: 0;
+    }
+  }
+
+  .rm-collapse {
+    padding: 4px 9px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--foreground);
+    background: var(--background);
+  }
+
+  .rm-panel-actions { display: flex; gap: 6px; }
+  .rm-collapse[aria-pressed="true"] { border-color: var(--ring); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    [data-surface="panel"] > * {
+      animation: rm-reveal 140ms ease-out both;
+    }
+    [data-edge="right"] { --reveal-x: 14px; }
+    [data-edge="left"] { --reveal-x: -14px; }
+    [data-edge="bottom"] { --reveal-y: 14px; }
+    [data-edge="top"] { --reveal-y: -14px; }
+    @keyframes rm-reveal {
+      from { opacity: 0; transform: translate(var(--reveal-x, 0), var(--reveal-y, 0)); }
+      to { opacity: 1; transform: translate(0, 0); }
+    }
+  }
+
+  .rm-empty, .rm-notice { color: var(--muted-foreground); }
+}
+
+@layer accessibility {
+  button:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
+}

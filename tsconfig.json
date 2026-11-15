@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "ESNext.Disposable", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "isolatedModules": true,
+    "strict": true,
+    "noEmitOnError": true,
+    "rootDir": "src",
+    "outDir": ".frontend-build"
+  },
+  "include": ["src/**/*.ts"]
+}

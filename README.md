@@ -8,7 +8,7 @@ One small window for the coding agents you already run: approve, answer and repl
 
 ## Status
 
-Planning. There is no code yet and nothing to install. Every decision made so far, the proposed design and what is still open are in [PLAN.md](PLAN.md).
+The Windows resident skeleton builds from source. See [PLAN.md](PLAN.md) for the build commands, verification results and upcoming client adapter work.
 
 ## What it will do
 

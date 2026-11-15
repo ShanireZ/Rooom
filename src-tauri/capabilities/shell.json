@@ -1,0 +1,13 @@
+{
+  "identifier": "shell",
+  "windows": ["shell"],
+  "permissions": [
+    "allow-get-snapshot",
+    "allow-open-panel",
+    "allow-close-panel",
+    "allow-focus-panel",
+    "allow-toggle-pin",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

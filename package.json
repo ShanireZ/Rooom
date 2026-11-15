@@ -1,0 +1,31 @@
+{
+  "name": "rooom",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "26.13.0"
+  },
+  "packageManager": "pnpm@12.16.1",
+  "scripts": {
+    "build": "tsc && vite build",
+    "dev": "tsc && vite",
+    "test": "tsc && node --test tests/snapshot.test.mjs",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.12.4",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@rolldown/plugin-babel": "0.3.1",
+    "@tailwindcss/vite": "4.3.5",
+    "@tauri-apps/cli": "2.12.4",
+    "@vitejs/plugin-react": "6.3.0",
+    "babel-plugin-react-compiler": "1.0.0",
+    "tailwindcss": "4.3.5",
+    "typescript": "7.1.0-beta",
+    "vite": "8.3.8"
+  }
+}

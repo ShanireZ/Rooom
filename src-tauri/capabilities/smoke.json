@@ -1,0 +1,5 @@
+{
+  "identifier": "smoke",
+  "windows": ["shell"],
+  "permissions": ["allow-smoke-rendered"]
+}

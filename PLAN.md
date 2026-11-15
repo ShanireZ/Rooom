@@ -1,10 +1,9 @@
 # Rooom — plan and decisions
 
-Status: **design approved, nothing built**. No code exists. The owner settled
-the decisions below and approved the design sections on 2026-11-11. What is
-still undecided is listed under "Open"; what has not been observed on a real
-machine is listed under "Experiments". Work starts at milestone 1 on the
-owner's word.
+Status: **milestone 1 complete, milestone 2 started on 2026-11-15**. The
+owner approved the design on 2026-11-11. [EXPERIMENTS.md](EXPERIMENTS.md)
+holds the observed results. "Open" holds the remaining product decisions.
+The owner directed the first batch of milestone 2 on 2026-11-15.
 
 ## Intent
 
@@ -49,7 +48,8 @@ source and documents, not a verified behavior.
 
 ## Decisions
 
-All dated 2026-11-11 and chosen by the owner, most of them from options
+Decisions are dated 2026-11-11 unless a row gives another date. The owner
+chose them, most of them from options
 compared on performance, ease of use, resource consumption and user
 experience. A later row that changes an earlier one is named in both.
 
@@ -61,16 +61,16 @@ experience. A later row that changes an earlier one is named in both.
 | D-004 | Addressing | A reply goes to the sender of the message it answers; otherwise the message goes to the one recipient shown on the chip beside the composer (D-022, D-040). No broadcast, no model-based routing, no `@name` syntax. |
 | D-005 | How the rest is decided | One item at a time, each with advantages, disadvantages and a recommendation. |
 | D-006 | Clients in v1 | Four desktop clients, built at the same time: the Claude desktop app, Codex Desktop, Antigravity and DeepSeek Harness. A client that fails its experiment leaves v1 (D-037). |
-| D-007 | Process architecture | One resident executable owns the inbox, the window, watching and receiving. The hook callback and the MCP relay are the same executable started with a flag (`--hook`, `--mcp`). The hook callback lives for one request; the MCP relay lives as long as the client session that started it. |
+| D-007 | Process architecture | One resident executable owns the inbox, the window, watching and receiving within the instance scope of D-049. The hook callback and the MCP relay are the same executable started with a flag (`--hook`, `--mcp`). The hook callback lives for one request; the MCP relay lives as long as the client session that started it. |
 | D-008 | Back-end language | Rust. Chosen over Go, C#/.NET and TypeScript. |
 | D-009 | Window shell | Tauri 2 on WebView2. Chosen over Slint, egui and native Win32/WinUI because the window is mostly text: Chinese input, selection, Markdown and code blocks. Accepted cost: the highest memory use of the four. |
 | D-010 | Rust build gate | The application and all Windows-only code build and test on the Windows host with MSVC; crates without operating-system code also build and test in a Linux container. A third gate was added by D-041. |
-| D-011 | Front-end framework | React 19, built with Vite and TypeScript. Chosen over Svelte 5, SolidJS and no framework. |
+| D-011 | Front-end framework | React 19, built with Vite and TypeScript. Chosen over Svelte 5, SolidJS and no framework. D-050 sets the source and compiler. |
 | D-012 | Components and styling | Headless components with hand-written component CSS; see "Front-end rules". |
 | D-013 | Front-end state | The framework's own primitives plus one small hand-written store holding the snapshot the back end pushes. No state library. |
 | D-014 | Animation inside the window | Native CSS and View Transitions first, then Anime.js, then Three.js; React Bits as a visual reference. The window's own slide is moved by Rust and is not part of this. |
 | D-015 | Front-end conventions | The rules in "Front-end rules" apply in full, including React Compiler and Tailwind for tokens and layout only. |
-| D-016 | Local IPC | A same-user named pipe between the resident program and its `--hook` and `--mcp` modes; no port. Chosen over loopback HTTP with a token and over exchanging files. Plugin channels use a shared folder, because a client plugin can only read and write files. |
+| D-016 | Local IPC | A same-user named pipe between the resident program and its `--hook` and `--mcp` modes, scoped by D-049; no port. Chosen over loopback HTTP with a token and over exchanging files. Plugin channels use a shared folder, because a client plugin can only read and write files. |
 | D-017 | Storage | Keep no conversation content. Settings are a JSON file; a send receipt records identifiers and state, never the words; the timeline is rebuilt each time from each client's own records. No database. Delivery files are the one exception (D-036). |
 | D-018 | MCP server implementation | The official Rust MCP SDK, compiled into the same executable and served by `rooom.exe --mcp`. |
 | D-019 | Resting form of the window | A thin strip on a screen edge with one state mark per agent. A panel about 380 px wide slides out when the pointer comes near or a request arrives, and slides back a few seconds after the pointer leaves; it stays out while the owner types or has pinned it. A tray icon and a global shortcut exist as well. |
@@ -103,6 +103,9 @@ experience. A later row that changes an earlier one is named in both.
 | D-046 | Markdown and code | `react-markdown` renders the timeline; Shiki colors code, loaded on demand per language. |
 | D-047 | Code signing | Apply to a free signing service for open-source projects. Which one, and whether Rooom qualifies, is not yet checked. |
 | D-048 | Design approval | The owner approved the sections "Architecture", "MCP", "Safety, privacy and failure rules", "Front-end rules", "Interface", "Dependencies", "Build and verification" and "Milestones" as written here. |
+| D-049 | Windows resident and pipe scope (2026-11-15) | One resident per owner account and Windows session. Each session has its own panel and a named pipe keyed by the owner SID and actual Windows session ID. A second launch in the same session opens the existing panel and exits. Helpers connect to the resident in their own session. Concurrent desktop sessions each use a resident WebView2. G-18 supports the pipe choice. Refines D-007 and D-016. |
+| D-050 | TypeScript compilation (2026-11-15) | Write React components in plain TypeScript with `createElement`. Compile the frontend with TypeScript 7.1, then bundle the emitted JavaScript with Vite. The available 7.1 beta is pinned as `7.1.0-beta`. Keep local declarations for the React APIs Rooom uses. Refines D-011. |
+| D-051 | Default global shortcut (2026-11-15) | New profiles start with `"shortcut": null`. A user can set a binding in `settings.json` and restart. Report an invalid or unavailable binding in the panel. The tray remains available. |
 
 ## Design
 
@@ -138,8 +141,8 @@ Rules:
   differs gets one selector and one file per host.
 - A send is never retried blindly. Once bytes may have left, an unconfirmed
   send stays "uncertain" and is shown as such.
-- If Rooom is not running, a hook callback answers nothing and the client
-  asks in its own window.
+- If there is no resident in the helper's Windows session, a hook
+  callback answers nothing and the client asks in its own window.
 
 ### Clients (expected; [EXPERIMENTS.md](EXPERIMENTS.md) says what has been observed)
 
@@ -147,11 +150,11 @@ Rules:
 | --- | --- | --- | --- | --- |
 | Sessions and state | Process registry (observed) | Thread records (observed) | The app's local service, found through its hub file (observed) | Plugin check-ins |
 | Replies are read from | Session records (observed) | Thread records (observed) | Transcript files (observed) | Compressed session files (observed) |
-| Requests arrive by | `PermissionRequest` hook (observed); the app's own questions from the session log | `PermissionRequest` hook in `hooks.json` (observed), once the owner has allowed it in Codex and for threads the user reviews; the desktop app's pipe for its other cards, not tried | The app's local service, polled for waiting steps (observed) | A plugin listening to `approval/request` (observed) |
+| Requests arrive by | `PermissionRequest` hook (observed); the app's own questions from the session log | `PermissionRequest` hook in `hooks.json` (observed), once the owner has allowed it in Codex and for threads the user reviews; the desktop owner's pipe for command and file-change requests (X-22), other card types open | The app's local service, polled for waiting steps (observed) | A plugin listening to `approval/request` (observed) |
 | Words are sent by | Plugin module and shared folder (observed) | Codex's queue, through the `codex queue` command of the executable the app bundles (observed) | The app's local service (observed) | A plugin calling the session controller's `prompt` in queue mode (observed) |
-| Cancel an untaken message | Expected | The protocol has `thread/queue/delete`; to try | To find out | Expected |
-| Interrupt a running turn | The plugin module cancels the turn (observed); a denial that interrupts at a permission boundary (observed) | The protocol has `turn/interrupt`; the reference does not offer it on Windows; to try | Not offered by the reference on Windows | To find out |
-| Start a new session | To find out | The protocol has `thread/start`; to try | Not offered by the reference on Windows | Not offered by the reference |
+| Cancel an untaken message | Desktop queue control (C-28); a Rooom-callable Desktop withdrawal remains open | Desktop queue withdrawal (X-15) | Desktop service withdrawal (A-15) | Plugin queue withdrawal in an isolated Desktop Host (D-11, D-18) |
+| Interrupt a running turn | The plugin module cancels the turn (C-10); a denial can interrupt at a permission boundary (C-7) | Desktop interruption (X-16) | Desktop service interruption (A-16) | Plugin interruption in an isolated Desktop Host (D-12, D-18) |
+| Start a new session | CLI seed and Desktop import observed (C-15); the Rooom entry point remains open | Desktop thread creation (X-14) | Desktop service conversation creation (A-14) | Plugin session creation in an isolated Desktop Host (D-10, D-18) |
 
 "Requests arrive" and "Words are sent" are the two rows D-037 judges a
 client by.
@@ -194,9 +197,10 @@ delegated check that could not read the hooks page to its end:
 - Every message between agents is shown in the owner's timeline.
 - The relay names the sender from what the client provides about itself; an
   argument written by the agent never names it. Replies, the chain cap and
-  D-033's comparisons need the sending *session*, not only the client. How
-  each client tells its relay which session it serves is unresolved; for
-  Claude Code no documented environment variable carries it.
+  D-033's comparisons need the sending *session*. The experiments obtained
+  that identity for all four Desktop clients (C-14, X-17, X-21, A-13, D-16,
+  D-18). The adapters must verify the identity path against their supported
+  client versions.
 
 ### Safety, privacy and failure rules
 
@@ -282,9 +286,9 @@ Sketch of the open panel:
 
 ### Dependencies
 
-Versions and licenses were read from the registries on 2026-11-11. Every
-license read is compatible with GPL-3.0. Exact pins are set when the first
-code is written.
+The initial versions and licenses were read from the registries on
+2026-11-11. Every license read is compatible with GPL-3.0. D-050 records
+the TypeScript pin adopted on 2026-11-15.
 
 | Dependency | Version read | License | Why |
 | --- | --- | --- | --- |
@@ -301,7 +305,7 @@ code is written.
 | `react`, `react-dom` | 19.3.1 | MIT | Interface (D-011). |
 | `babel-plugin-react-compiler`, `@rolldown/plugin-babel` | 1.0.0, 0.3.1 | MIT | React Compiler (D-015). `@vitejs/plugin-react` 6 names both as optional peers; it no longer runs Babel itself. |
 | `vite`, `@vitejs/plugin-react` | 8.3.8, 6.3.0 | MIT | Build. |
-| `typescript` | 7.0.2 | Apache-2.0 | Types. |
+| `typescript` | 7.1.0-beta | Apache-2.0 | Type checking and JavaScript emission (D-050). |
 | `@tauri-apps/api`, `@tauri-apps/cli` | 2.12.4 | Apache-2.0 OR MIT | Calls into the host; build. |
 | `@base-ui/react` | 1.9.0 | MIT | Headless components (D-012). |
 | `tailwindcss`, `@tailwindcss/vite` | 4.3.5 | MIT | Tokens and layout utilities only. |
@@ -337,11 +341,11 @@ and `@tauri-apps/api` must stay on the same minor version.
 | 3 | The design of the signature shader effect (D-043). |
 | 4 | The design of the abstract icon set (D-042). |
 | 5 | `remark-gfm` for tables in Markdown: not in the approved dependency list. |
-| 6 | Which clients let Rooom read a session's permission mode, which one of D-033's four questions depends on. Observed so far: Claude, Codex and DeepSeek Harness do. |
+| 6 | D-033 needs comparable session permission modes. Claude, Codex and DeepSeek Harness exposed session modes. A-9 read Antigravity's command auto-execution policy. Whether that supports the session-to-session comparison remains open. |
 | 7 | A Zstandard decoder for DeepSeek Harness's session files: not in the approved dependency list. |
 | 8 | Codex and the ten-minute wait of D-034. While Rooom holds a Codex request nobody can answer it in Codex. Either a shorter wait for Codex, or a "hand back to Codex" action on the card, or both. |
 | 10 | Antigravity and DeepSeek Harness both record a message sent from outside as the user's own words. D-033 and the MCP rules want an agent's message marked as an agent's. Either Rooom writes the sender into the text, or another call is found. |
-| 9 | "Allow for the session" (D-035) for Codex. Its hook cannot add a permission; the button is either disabled for Codex with the reason, or reached another way that is not yet tried. |
+| 9 | "Allow for the session" (D-035) for Codex. Its hook cannot add a permission. `acceptForSession` worked for a command through app-server stdio (X-19) and the Desktop owner pipe (X-20). The command request omitted that option. Desktop accepted declines on command and file-change requests (X-22). Both inline cards showed allow-once, decline and a dropdown (X-23). The installed renderer's extra command action sends a persistent exec-policy amendment, and the file-change action sends `acceptForSession` (X-24). The Desktop owner honored that file decision on a later edit to the same path, with new requests for a different path and a fresh chat (X-25). The expanded Desktop menus displayed `允许一次` / `允许类似命令` for commands and `允许一次` / `允许所有修改` for file changes (X-27). Rooom adoption remains open. |
 
 ## Experiments before the interface promises anything
 
@@ -371,8 +375,10 @@ observed, by command. Only the channels of D-038 are tried.
   Store may redirect its data folders.
 - **The install path** with spaces and non-ASCII characters in the user name,
   through each client's hook entry.
-- **Capture exclusion** (D-044) in the meeting and recording programs the
-  owner uses.
+- **Capture exclusion** (D-044). On 2026-11-15 the owner accepted the
+  Windows Graphics Capture and GDI controls in [G-13](EXPERIMENTS.md)
+  for milestone 1 and waived separate trials in meeting and recording
+  programs.
 - **The pipe name** when the owner has more than one Windows session open.
 
 ## Milestones
@@ -382,15 +388,141 @@ Client apps update often: each adapter records the client version it was
 verified against, reports an unknown version as unverified, and can be
 switched off on its own.
 
-1. **Experiments.** Results are kept in [EXPERIMENTS.md](EXPERIMENTS.md).
-   By D-037 all four clients stay in v1 (2026-11-11).
-   Done when no table cell there reads "not tried":
-   `grep -o "| not tried" EXPERIMENTS.md | wc -l` prints 0. D-037 then decides which
-   clients stay, from the two rows it names.
-2. **Skeleton.** The three build gates, the resident program, the strip and
-   panel, tray, shortcut, the pipe, settings.
+1. **Experiments. Complete on 2026-11-15.** The
+   [experiment table](EXPERIMENTS.md) has zero result cells marked
+   "not tried". On Windows,
+   `(rg -o --fixed-strings '| not tried' EXPERIMENTS.md | Measure-Object).Count`
+   prints `0`. For each of the four Desktop clients both D-037 rows
+   were observed. All four stay in v1, subject to the capability and
+   version checks in this plan.
+2. **Skeleton. Local acceptance complete on 2026-11-15.** The resident
+   program, strip and panel, tray, shortcut, pipe and settings.
+   The hosted Windows build gate is pending.
 3. **The adapters, in parallel** (D-006), with the timeline, request cards
    and the composer.
 4. **Agent messages** through MCP, with the three modes of D-033.
 5. **Languages, themes, motion and the signature effect, privacy mode,
    packaging and signing.**
+
+### Milestone 2 preparation
+
+The first runnable slice is a Windows resident executable with a small
+edge strip and panel rendered by one WebView. The tray can open the panel
+or quit. The UI renders a back-end snapshot with fixture data for
+verification. This slice also establishes JSON settings and the three
+build gates. Milestone 2 then adds the shortcut, strip behavior and the
+same-user pipe. Milestones 3–5 own adapter and client configuration,
+production cards and composer, MCP tools, and distribution.
+
+#### First batch
+
+Proposed file layout and work order, based on D-007–D-017, D-039 and
+D-041. The build and portable settings work can proceed together.
+Run the Windows shell check once both are available.
+
+| Work | Files and responsibility | First check |
+| --- | --- | --- |
+| Locked workspace and gates | Root `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `.nvmrc`, `package.json` and `pnpm-lock.yaml` pin the toolchain and dependencies. Rust 1.100.0 builds on x64 MSVC and in the Linux test image. Node 26.13.0 and pnpm 12.16.1 build the frontend. `Dockerfile` builds the portable test image. `.github/workflows/windows.yml` uses `scripts/check-windows-build.ps1` on push and pull request. | A frozen frontend install, frontend snapshot test, locked Rust workspace tests and a release executable build on Windows. Linux runs the portable tests from the same lockfile. |
+| Snapshot and settings | `crates/rooom-core` owns the serializable snapshot and settings fields for edge, display, shortcut and capture exclusion. `src-tauri` owns the OS settings file and the UI bridge. Store settings only, with atomic replacement and an error for malformed input. | Test defaults, round trip and malformed input with synthetic fixtures. Test that a failed replacement leaves the original settings bytes readable. |
+| Resident Windows slice | `src-tauri` is package `rooom-app`. It owns the Windows window, tray, one resident event loop and a snapshot query and update event. `src/` is the React, Vite and TypeScript frontend. Keep one WebView for the strip and panel. Use the approved CSP and default capture exclusion from the first visible window. | `scripts/check-skeleton.ps1 -Suite FirstBatch` starts a disposable instance of the real host, observes the strip and snapshot, invokes the same open and quit handlers the tray uses, and checks the process exits. |
+
+The first batch loads `%APPDATA%\com.rooom.desktop\settings.json` on
+launch. It creates defaults at the right edge of the primary display
+with capture exclusion active. A saved display that is unavailable
+falls back to the primary display. Malformed settings keep their bytes
+and produce a notice in the panel. The strip and the tray's Open command
+open the panel. Collapse returns it to the strip and the tray's Quit
+command ends the process.
+
+#### Complete the skeleton
+
+- Complete the edge and panel behavior (D-019, D-020). Use the same Rust
+  transition for a tray open, shortcut open and automated fixture event.
+  Verify that an incoming fixture request shows the panel without taking
+  the foreground. Verify retraction after leaving, retention while
+  focused or pinned, and that a registered shortcut opens the panel.
+  Test a competing shortcut registration so a conflict is reported and
+  the tray still works. Use a fixture binding for the gate. See the
+  [Tauri shortcut interface](https://v2.tauri.app/plugin/global-shortcut/).
+- Add `crates/rooom-platform` for Windows pipe transport and resident
+  handover. The reference at `d14bc43` selects by account SID and
+  canonical data path and hands over to a resident holding a file lock.
+  D-049 uses the account SID and actual Windows session ID for both
+  resident ownership and pipe routing, backed by G-18. On the interactive
+  host, launch twice within one session and verify the original resident
+  PID survives, its panel opens, and the second process exits. In an
+  isolated Windows environment, use the same account in two different
+  Windows sessions and verify simultaneous resident endpoints. Each
+  health request must return the expected resident PID and Windows
+  session ID even while the other endpoint is live. Also verify a
+  first-instance collision, a rejected remote or unauthorized caller,
+  and a bounded return on a missing server, disconnect or malformed
+  input. The skeleton exposes health and resident handover only.
+  The listener rejects remote clients and limits local access to the
+  owner SID. It also checks the caller's kernel session ID. Share
+  `settings.json` across sessions and give each session a separate
+  WebView2 user data directory.
+  [WebView2 user data folders](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/user-data-folder#how-many-udfs-are-created)
+  [Reference pipe](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/crates/platform/src/os/windows/pipe.rs)
+  [Reference instance lock](https://github.com/jazzenchen/agent-hud-open/blob/d14bc43fe117f2f5d4e9143d5ebcf92c62225a66/src/crates/platform/src/instance/mod.rs)
+- Restart the resident with disposable settings. Read back the saved
+  edge, display, shortcut and capture preference, and verify the actual
+  window affinity at its default and after a toggle. Remove the fixture
+  settings, window and process after the check. Keep native window checks
+  on the interactive Windows host; use the same handlers in the test
+  harness and observe the actual foreground and lifecycle through Win32.
+
+#### Planned acceptance commands
+
+Run these from the Rooom root. `FirstBatch` covers the first runnable
+slice. `Full` covers the remaining skeleton work when it lands.
+Each check exits nonzero on a missing or failed required case.
+
+| Gate | Command | Passing evidence |
+| --- | --- | --- |
+| Windows build and tests | `pwsh -NoProfile -File scripts/check-windows-build.ps1` | Verifies the Rust pin and `x86_64-pc-windows-msvc`, then runs `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm exec tauri build --no-bundle --target x86_64-pc-windows-msvc -- --locked` and `cargo test --workspace --locked --target x86_64-pc-windows-msvc`. Produces `target/x86_64-pc-windows-msvc/release/rooom.exe`. [Tauri CLI](https://v2.tauri.app/reference/cli/#build) |
+| Linux portable gate | `docker build --target test -t rooom-m2-core-gate .` then `docker run --rm rooom-m2-core-gate` | The container runs `cargo test --locked -p rooom-core`. Settings and snapshot tests are discovered and pass. |
+| Windows resident | `pwsh -NoProfile -File scripts/check-skeleton.ps1 -Suite FirstBatch`, then `pwsh -NoProfile -File scripts/check-skeleton.ps1 -Suite Full -SessionProof <guest-proof.json>` | The first suite proves the window and tray lifecycle and snapshot delivery. The full suite checks passive show, timed retraction, pin and focus, shortcut registration and conflict, capture affinity across restart, pipe failure cases, and same-session handover. The fixture invokes the shortcut's Rust handler after confirming registration. |
+| Isolated session routing | Build with `cargo rustc --locked -p rooom-platform --release --target x86_64-pc-windows-msvc --example pipe_fixture -- -C target-feature=+crt-static`. Copy the resulting `pipe_fixture.exe` and `scripts/check-pipe-sessions.ps1` to a disposable Windows guest. In the elevated guest console, run `powershell -NoProfile -File check-pipe-sessions.ps1 -Fixture .\pipe_fixture.exe -Proof .\guest-proof.json -Isolated`. | The production transport serves concurrent instances in a console session and a scheduled, noninteractive session of the same account. Each health response matches the expected PID and session ID. A caller from the other session cannot use the explicit pipe name, and an ordinary pipe open by LocalSystem receives Win32 error 5. Full verifies the receipt against the fixture executable's SHA-256. The fixture links the MSVC runtime statically for clean guests. |
+| GitHub Actions | `gh run list --workflow windows.yml --commit (git rev-parse HEAD) --json headSha,event,status,conclusion` | The Windows job succeeds for the checked commit on the required push and pull-request events. Hosted evidence follows the owner's separate authorization for remote writes. [Windows runner image](https://github.com/actions/runner-images) |
+
+First-batch local verification passed on 2026-11-15. The Windows gate
+built the release executable and passed eight Rust tests and one
+frontend snapshot test. The Docker gate passed four core tests.
+`FirstBatch` exercised default, saved and malformed settings. Win32
+confirmed the configured edge and capture affinity, and the WebView
+reported strip, panel and strip again in the same window. Each case
+exited successfully through the tray quit handler. The Windows
+workflow passed local `actionlint`. Hosted CI is still pending.
+D-050 now uses `tsc` 7.1.0-beta to check and emit all frontend source in
+`src/`. Vite bundles the emitted JavaScript. The snapshot test imports
+the compiler output, and the development server recompiles edited
+`.ts` files. The Windows build and all three `FirstBatch` cases passed
+again with this compiler.
+
+The remaining skeleton's 2026-11-15 Windows release build passed 14
+Rust tests and one frontend test. The Docker gate passed all six
+portable core tests, and the three `FirstBatch` profiles passed.
+The interactive part of `Full` observed passive edge reveal and a
+passive pipe wake without a foreground change, three-second retraction,
+pin and native focus retention, real shortcut registration and conflict,
+tray fallback, and the capture affinity changing from 0 to 17 after
+restarting the same profile. In the duplicate launch case the new
+process exited 0, and the original PID and HWND opened the panel.
+The focus check grants the disposable resident native activation
+permission through a short debugger attachment, then invokes its
+focus handler. The shortcut check invokes the registered handler
+through a fixture. The window bounds change immediately, and the
+panel content slides in. Native transition motion stays in milestone 5.
+
+The full resident command exited 0 with a receipt from an isolated
+Windows Server 2025 guest. The same SID held both pipe listeners at
+once in console session 1 and scheduled noninteractive session 0.
+Each returned its own PID and Windows session ID. The listeners
+rejected requests to the other session's explicit endpoint, and the
+LocalSystem probe received `ERROR_ACCESS_DENIED` (5). The full command
+matched the guest receipt to the SHA-256 of the statically linked
+probe. This check covers the transport across two Windows sessions.
+
+Milestone 2 is done when the full Windows resident suite and all three
+build gates pass for the same implementation and lockfiles.

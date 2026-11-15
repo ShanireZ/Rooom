@@ -1,0 +1,14 @@
+**
+!Cargo.toml
+!Cargo.lock
+!rust-toolchain.toml
+!crates/
+!crates/rooom-core/
+!crates/rooom-core/**
+!crates/rooom-platform/
+!crates/rooom-platform/Cargo.toml
+!crates/rooom-platform/src/
+!crates/rooom-platform/src/lib.rs
+!src-tauri/
+!src-tauri/Cargo.toml
+!src-tauri/build.rs

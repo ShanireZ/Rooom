@@ -19,10 +19,10 @@ settled decision, the design and what is still open. Read it first.
 
 ## Working boundaries
 
-- **Milestone 1 is running; nothing is built.** The owner started the
-  experiments of `PLAN.md` on 2026-11-11. Throwaway probes are allowed and
-  stay out of the repository. No product code, scaffolding, dependency
-  installation or generated project files until the owner starts milestone 2.
+- **Milestone scope.** Read the current milestone and its acceptance
+  checks in `PLAN.md`. The owner starts each milestone. Throwaway probes
+  stay out of the repository. Product code, scaffolding, dependencies
+  and generated project files begin with milestone 2.
 - **Read the reference first.** For every technical question, read how the
   reference solves it before designing an experiment or an answer, and record
   what it does by path and commit (owner, 2026-11-11).
@@ -69,10 +69,13 @@ container, so Rooom has three gates:
 - **CI gate.** GitHub Actions builds and tests on Windows for every push and
   pull request.
 
-None of the three exists yet. The host toolchain was observed to build an
-MSVC executable; see `EXPERIMENTS.md`.
+The CI workflow runs the same Windows build script as the host gate.
+Use the lockfiles and the Node version in `.nvmrc`.
 
 ## Commands
 
-None. The repository holds documents only: no build, test or run command.
-Check Markdown links after editing documents and run `git diff --check`.
+- Windows build and tests: `pwsh -NoProfile -File scripts/check-windows-build.ps1`.
+- Windows resident check after building: `pwsh -NoProfile -File scripts/check-skeleton.ps1 -Suite FirstBatch`.
+- Linux core: `docker build --target test -t rooom-m2-core-gate .`
+  followed by `docker run --rm rooom-m2-core-gate`.
+- Check Markdown links after editing documents and run `git diff --check`.
