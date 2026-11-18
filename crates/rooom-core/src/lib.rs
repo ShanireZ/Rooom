@@ -1,3 +1,5 @@
+pub mod inbox;
+
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 
@@ -79,6 +81,7 @@ pub struct Snapshot {
     pub settings_issue: Option<SettingsIssue>,
     pub pinned: bool,
     pub shortcut_issue: Option<ShortcutIssue>,
+    pub inbox: inbox::InboxSnapshot,
 }
 
 impl Snapshot {
@@ -90,7 +93,17 @@ impl Snapshot {
             settings_issue,
             pinned: false,
             shortcut_issue: None,
+            inbox: inbox::InboxSnapshot::default(),
         }
+    }
+
+    pub fn set_inbox(&mut self, inbox: inbox::InboxSnapshot) -> bool {
+        if self.inbox == inbox {
+            return false;
+        }
+        self.inbox = inbox;
+        self.revision += 1;
+        true
     }
 
     pub fn set_surface(&mut self, surface: Surface) {

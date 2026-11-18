@@ -11,13 +11,14 @@ path = "src/main.rs"
 [features]
 custom-protocol = ["tauri/custom-protocol"]
 first-batch-smoke = []
+first-batch-adapters = ["first-batch-smoke", "rooom-platform/adapter-fixtures"]
 
 [build-dependencies]
 tauri-build = { version = "=2.7.4", features = [] }
 
 [dependencies]
 rooom-core = { path = "../crates/rooom-core" }
-rooom-platform = { path = "../crates/rooom-platform" }
+rooom-platform = { path = "../crates/rooom-platform", features = ["adapter-runtime"] }
 serde.workspace = true
 serde_json.workspace = true
 tauri = { version = "=2.12.5", default-features = false, features = ["wry", "tray-icon"] }

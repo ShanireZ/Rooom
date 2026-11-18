@@ -4,13 +4,28 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[features]
+adapter-runtime = ["dep:rooom-clients", "dep:rooom-core", "dep:serde", "dep:serde_json", "dep:tungstenite"]
+adapter-fixtures = ["adapter-runtime"]
+
 [target.'cfg(windows)'.dependencies]
+rooom-clients = { path = "../rooom-clients", optional = true }
+rooom-core = { path = "../rooom-core", optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
 tokio = { version = "=1.54.1", features = ["io-util", "macros", "net", "rt", "sync", "time"] }
+tungstenite = { version = "=0.30.0", default-features = false, features = ["handshake"], optional = true }
 windows-sys = { version = "=0.61.2", features = [
     "Win32_Foundation",
+    "Win32_Networking_WinSock",
+    "Win32_NetworkManagement_IpHelper",
     "Win32_Security",
     "Win32_Security_Authorization",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Diagnostics_ToolHelp",
     "Win32_System_Pipes",
     "Win32_System_RemoteDesktop",
     "Win32_System_Threading",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
 ] }

@@ -1,0 +1,12 @@
+{
+  "sessionId": "session-1",
+  "pid": 1234,
+  "procStart": "134128590720000000",
+  "pidDomain": "win32",
+  "kind": "interactive",
+  "entrypoint": "claude-desktop",
+  "status": "waiting",
+  "name": "Fixture Claude",
+  "cwd": "C:\\synthetic\\Claude Workspace",
+  "version": "2.1.325"
+}

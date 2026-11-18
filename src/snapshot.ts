@@ -5,6 +5,27 @@ export type Edge = 'left' | 'right' | 'top' | 'bottom';
 export type Surface = 'strip' | 'panel';
 export type SettingsIssue = 'invalid' | 'unreadable' | 'unwritable';
 export type ShortcutIssue = 'invalid' | 'unavailable';
+export type Client = 'claude' | 'codex' | 'antigravity' | 'harness';
+export type DeliveryState = 'queued' | 'received' | 'started' | 'uncertain' | 'expired' | 'rejected';
+export interface SessionKey { client: Client; id: string }
+export interface RequestKey { session: SessionKey; id: string }
+export interface Session { key: SessionKey; title: string; sendBlocked: string | null }
+export interface OwnerRequest {
+  key: RequestKey;
+  summary: string;
+  workspace: string | null;
+  detail: string;
+  decisionBlocked: string | null;
+  allowForSession?: boolean;
+  canOpenSession: boolean;
+}
+export interface InboxSnapshot {
+  adapters: { client: Client; reason: string | null; setup: string }[];
+  sessions: Session[];
+  requests: OwnerRequest[];
+  timeline: { session: SessionKey; id: string; text: string }[];
+  deliveries: { id: string; session: SessionKey; state: DeliveryState; externalId: string | null }[];
+}
 
 export interface Settings {
   edge: Edge;
@@ -20,6 +41,7 @@ export interface Snapshot {
   settingsIssue: SettingsIssue | null;
   pinned: boolean;
   shortcutIssue: ShortcutIssue | null;
+  inbox: InboxSnapshot;
 }
 
 export function createSnapshotStore() {

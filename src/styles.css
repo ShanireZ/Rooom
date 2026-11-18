@@ -104,10 +104,33 @@
   }
 
   .rm-empty, .rm-notice { color: var(--muted-foreground); }
+  .rm-request {
+    border-bottom: 1px solid var(--border);
+    padding: 8px 0;
+  }
+  .rm-request-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .rm-request-heading strong { overflow-wrap: anywhere; }
+  .rm-request summary { cursor: pointer; }
+  .rm-request-length { color: var(--muted-foreground); }
+  .rm-request-preview, .rm-request pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .rm-request-preview { display: block; margin: 3px 0; }
+  .rm-request details[open] .rm-request-preview { display: none; }
+  .rm-session-list, .rm-timeline { list-style: none; padding: 0; }
+  .rm-timeline li { border-bottom: 1px solid var(--border); padding: 3px 0; overflow-wrap: anywhere; }
+  .rm-compose { display: flex; flex-wrap: wrap; gap: 4px; }
+  .rm-compose input { flex: 1; min-width: 9ch; }
+  .rm-compose select { max-width: 100%; }
+  .rm-setup { margin-top: 8px; color: var(--muted-foreground); }
 }
 
 @layer accessibility {
-  button:focus-visible {
+  button:focus-visible, .rm-request summary:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: -2px;
   }

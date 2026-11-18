@@ -1,0 +1,4 @@
+{"type":"user","sessionId":"session-1","uuid":"history-prompt-1","message":{"role":"user","content":"Synthetic transcript prompt."}}
+{"type":"assistant","sessionId":"session-1","uuid":"history-reply-1","message":{"role":"assistant","id":"message-1","content":[{"type":"thinking","thinking":"Not a timeline item."},{"type":"text","text":"Synthetic transcript reply."}]}}
+{"type":"user","sessionId":"session-1","uuid":"history-tool-result","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"tool-1","content":"Synthetic tool result."}]}}
+{"type":"api-request-blob","message":{"role":"user","content":"Synthetic request copy."}}

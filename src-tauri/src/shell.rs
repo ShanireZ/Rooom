@@ -16,7 +16,7 @@ use tauri::{
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
-const SHELL: &str = "shell";
+pub(crate) const SHELL: &str = "shell";
 pub const TRAY: &str = "rooom";
 const OPEN: &str = "open";
 const QUIT: &str = "quit";
@@ -40,11 +40,19 @@ pub fn install(app: &App, session: u32) -> Result<(), Box<dyn std::error::Error>
     let builder =
         builder.data_directory(webview_data_dir(&app.path().app_local_data_dir()?, session));
     let window = builder.build()?;
+    #[cfg(feature = "first-batch-smoke")]
+    crate::smoke::trace_focus(&window, "built");
     let settings = get_snapshot(app.state::<Resident>())?.settings;
     window.set_content_protected(settings.capture_exclusion)?;
     place(&window, &settings, Surface::Strip)?;
     let handle = app.handle().clone();
     window.on_window_event(move |event| {
+        #[cfg(feature = "first-batch-smoke")]
+        if let WindowEvent::Focused(focused) = event {
+            if let Some(window) = handle.get_webview_window(SHELL) {
+                crate::smoke::trace_focus(&window, if *focused { "focus-in" } else { "focus-out" });
+            }
+        }
         if let WindowEvent::CloseRequested { api, .. } = event {
             api.prevent_close();
             if let Err(error) = set_surface(&handle, Surface::Strip) {
@@ -70,7 +78,11 @@ pub fn install(app: &App, session: u32) -> Result<(), Box<dyn std::error::Error>
             }
         })
         .build(app)?;
+    #[cfg(feature = "first-batch-smoke")]
+    crate::smoke::trace_focus(&window, "before-show");
     window.show()?;
+    #[cfg(feature = "first-batch-smoke")]
+    crate::smoke::trace_focus(&window, "after-show");
     Ok(())
 }
 
@@ -117,6 +129,8 @@ pub fn set_surface(app: &AppHandle, surface: Surface) -> Result<(), String> {
     let window = app
         .get_webview_window(SHELL)
         .ok_or("Missing Rooom window")?;
+    #[cfg(feature = "first-batch-smoke")]
+    crate::smoke::trace_focus(&window, "before-reveal");
     place(&window, &snapshot.settings, surface)?;
     if surface == Surface::Strip {
         window
@@ -124,6 +138,8 @@ pub fn set_surface(app: &AppHandle, surface: Surface) -> Result<(), String> {
             .map_err(|error| error.to_string())?;
         snapshot.pinned = false;
     }
+    #[cfg(feature = "first-batch-smoke")]
+    crate::smoke::trace_focus(&window, "after-reveal");
     snapshot.set_surface(surface);
     let value = snapshot.clone();
     drop(snapshot);
@@ -144,6 +160,8 @@ pub fn focus_panel(app: &AppHandle) -> Result<(), String> {
         window
             .set_focusable(true)
             .map_err(|error| error.to_string())?;
+        #[cfg(feature = "first-batch-smoke")]
+        crate::smoke::trace_focus(&window, "explicit-focus");
         let hwnd = window.hwnd().map_err(|error| error.to_string())?.0;
         // Tao's forced-focus fallback synthesizes Alt. Let Windows decide
         // whether this trusted interaction may activate the panel.

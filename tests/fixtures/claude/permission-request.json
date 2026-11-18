@@ -1,0 +1,10 @@
+{
+  "hook_event_name": "PermissionRequest",
+  "session_id": "session-1",
+  "prompt_id": "request-1",
+  "tool_name": "Bash",
+  "tool_input": { "command": "echo ROOOM_CLAUDE_FIXTURE_TOOL" },
+  "cwd": "C:\\synthetic",
+  "transcript_path": "C:\\synthetic\\session-1.jsonl",
+  "permission_mode": "default"
+}

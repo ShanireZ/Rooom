@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-smoke-next-action"
+description = "Enables the smoke_next_action command without any pre-configured scope."
+commands.allow = ["smoke_next_action"]
+
+[[permission]]
+identifier = "deny-smoke-next-action"
+description = "Denies the smoke_next_action command without any pre-configured scope."
+commands.deny = ["smoke_next_action"]

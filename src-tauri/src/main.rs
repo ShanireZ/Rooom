@@ -1,10 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod adapter_batch;
 mod settings_file;
 mod shell;
 #[cfg(feature = "first-batch-smoke")]
 mod smoke;
 
+use rooom_core::inbox::{Decision, Request, RequestKey, SessionKey};
 use rooom_core::{PanelTimer, Snapshot};
 use rooom_platform::pipe::{self, Action, Scope, Startup};
 use std::sync::Mutex;
@@ -44,6 +46,28 @@ fn toggle_pin(app: AppHandle) -> Result<(), String> {
     shell::toggle_pin(&app)
 }
 
+#[tauri::command]
+async fn send_message(app: AppHandle, target: SessionKey, text: String) -> Result<String, String> {
+    if text.trim().is_empty() || text.len() > 16_384 || text.contains('\0') {
+        return Err("Enter a message of up to 16 KiB.".into());
+    }
+    adapter_batch::send(app, target, text).await
+}
+
+#[tauri::command]
+async fn answer_request(
+    app: AppHandle,
+    request: Request,
+    decision: Decision,
+) -> Result<(), String> {
+    adapter_batch::answer(app, request, decision).await
+}
+
+#[tauri::command]
+async fn open_request_session(app: AppHandle, request: RequestKey) -> Result<(), String> {
+    adapter_batch::open_request_session(app, request).await
+}
+
 fn main() {
     if let Err(error) = run() {
         eprintln!("Rooom could not start: {error}");
@@ -52,6 +76,16 @@ fn main() {
 }
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
+    let arg = std::env::args_os().nth(1);
+    #[cfg(feature = "first-batch-adapters")]
+    if arg.as_deref().is_some_and(|arg| arg == "--fixture-codex") {
+        rooom_platform::adapters::codex::fixture_cli(std::env::args_os().skip(2))?;
+        return Ok(());
+    }
+    if arg.as_deref().is_some_and(|arg| arg == "--hook") {
+        run_hook();
+        return Ok(());
+    }
     let scope = Scope::current()?;
     #[cfg(feature = "first-batch-smoke")]
     let scope = scope.fixture(&std::env::var("ROOOM_SMOKE_ID")?)?;
@@ -89,6 +123,15 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 shell::register_shortcut(app.handle(), snapshot.settings.shortcut.as_deref());
             app.manage(Resident(Mutex::new(snapshot)));
             app.manage(PanelPolicy::default());
+            #[cfg(not(feature = "first-batch-smoke"))]
+            match adapter_batch::Batch::new(&profile, &scope, false) {
+                Ok(batch) => {
+                    app.manage(batch);
+                }
+                Err(_) => eprintln!("Rooom could not open its private adapter folder."),
+            }
+            #[cfg(feature = "first-batch-adapters")]
+            app.manage(adapter_batch::Batch::new(&profile, &scope, !smoke::live())?);
             shell::install(app, session)?;
             let handle = app.handle().clone();
             let failure_handle = handle.clone();
@@ -115,6 +158,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             app.manage(PipeSlot(Mutex::new(Some(listener))));
             #[cfg(feature = "first-batch-smoke")]
             smoke::start(app.handle().clone(), profile);
+            if app.try_state::<adapter_batch::Batch>().is_some() {
+                adapter_batch::start(app.handle().clone());
+            }
             #[cfg(feature = "first-batch-smoke")]
             let watch = smoke::full();
             #[cfg(not(feature = "first-batch-smoke"))]
@@ -132,7 +178,11 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         close_panel,
         focus_panel,
         toggle_pin,
+        send_message,
+        answer_request,
+        open_request_session,
         smoke::smoke_rendered,
+        smoke::smoke_next_action,
     ]);
     #[cfg(not(feature = "first-batch-smoke"))]
     let builder = builder.invoke_handler(tauri::generate_handler![
@@ -140,13 +190,19 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         open_panel,
         close_panel,
         focus_panel,
-        toggle_pin
+        toggle_pin,
+        send_message,
+        answer_request,
+        open_request_session,
     ]);
 
     builder
         .build(tauri::generate_context!())?
         .run(|app, event| {
             if matches!(event, tauri::RunEvent::Exit) {
+                if let Some(batch) = app.try_state::<adapter_batch::Batch>() {
+                    batch.shutdown();
+                }
                 if let Some(watch) = app.try_state::<shell::PointerWatch>() {
                     watch.stop();
                 }
@@ -156,4 +212,33 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             }
         });
     Ok(())
+}
+
+fn run_hook() {
+    use rooom_platform::pipe::hook;
+    use std::io::{Read, Write};
+    let Ok(scope) = Scope::current() else { return };
+    #[cfg(feature = "first-batch-smoke")]
+    let scope = {
+        let id = std::env::args()
+            .nth(2)
+            .or_else(|| std::env::var("ROOOM_SMOKE_ID").ok());
+        let Some(scope) = id.and_then(|id| scope.fixture(&id).ok()) else {
+            return;
+        };
+        scope
+    };
+    // Missing/malformed/expired IPC stays silent, leaving the client prompt intact.
+    let mut bytes = Vec::new();
+    if std::io::stdin()
+        .take((hook::MAX_PAYLOAD + 1) as u64)
+        .read_to_end(&mut bytes)
+        .is_ok()
+    {
+        let _ = hook::decide(&scope, &bytes, |decision| {
+            let mut stdout = std::io::stdout().lock();
+            writeln!(stdout, "{}", hook::output(decision))?;
+            stdout.flush()
+        });
+    }
 }

@@ -3,6 +3,8 @@ WORKDIR /rooom
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY src-tauri/Cargo.toml src-tauri/build.rs src-tauri/
 COPY crates/rooom-core/ crates/rooom-core/
+COPY crates/rooom-clients/ crates/rooom-clients/
 COPY crates/rooom-platform/ crates/rooom-platform/
-RUN cargo test --locked -p rooom-core --no-run
-CMD ["cargo", "test", "--locked", "--offline", "-p", "rooom-core"]
+COPY tests/fixtures/ tests/fixtures/
+RUN cargo test --locked -p rooom-core -p rooom-clients --no-run
+CMD ["cargo", "test", "--locked", "--offline", "-p", "rooom-core", "-p", "rooom-clients"]

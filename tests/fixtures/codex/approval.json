@@ -1,0 +1,14 @@
+{
+  "handledByClientId": "desktop-owner-1",
+  "request": {
+    "id": "request-1",
+    "method": "item/commandExecution/requestApproval",
+    "params": {
+      "threadId": "session-1",
+      "turnId": "turn-1",
+      "itemId": "command-1",
+      "command": "Write-Output 'synthetic approval'",
+      "availableDecisions": ["accept", "acceptWithExecpolicyAmendment", "cancel"]
+    }
+  }
+}

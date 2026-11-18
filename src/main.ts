@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { createElement, Fragment, useState, useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
 import { connectSnapshot, snapshotStore, type SettingsIssue, type ShortcutIssue } from './snapshot.js';
+import { InboxPanel } from './inbox.js';
 
 const settingsMessage: Record<SettingsIssue, string> = {
   invalid: 'Settings could not be parsed. Rooom is using defaults.',
@@ -35,7 +36,7 @@ function Shell() {
         className: 'rm-strip grid place-items-center',
         type: 'button',
         'aria-label': 'Open Rooom',
-        title: error ?? 'Open Rooom',
+        title: error ?? (snapshot.inbox.requests.length ? `${snapshot.inbox.requests.length} pending requests` : 'Open Rooom'),
         onClick: () => void windowAction('open_panel'),
       },
       createElement('span', { className: 'rm-strip-mark', 'aria-hidden': true }),
@@ -62,7 +63,7 @@ function Shell() {
           ),
         ),
       ),
-      createElement('p', { className: 'rm-empty', role: 'status' }, 'No active sessions'),
+      InboxPanel(snapshot.inbox),
       snapshot.settingsIssue
         ? createElement('p', { className: 'rm-notice', role: 'status' }, settingsMessage[snapshot.settingsIssue])
         : null,

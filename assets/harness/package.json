@@ -1,0 +1,17 @@
+{
+  "name": "rooom-receiver",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./receiver.mjs",
+    "./client": "./client.js"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "client": {
+      "platform": "web",
+      "inject": ["@deepseek-ai/dsh-client-ui-workspace"]
+    }
+  }
+}

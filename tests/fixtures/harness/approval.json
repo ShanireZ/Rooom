@@ -1,0 +1,1 @@
+{"event":"approval/request","agent":{"id":"session-1","parent":null},"callId":"request-1","toolName":"shell","reason":"Synthetic approval to inspect fixture data.","at":1,"cwd":"C:\\synthetic\\Harness Workspace 測試"}

@@ -1,0 +1,36 @@
+{
+  "trajectorySummaries": {
+    "session-1": {
+      "title": "Fixture Antigravity conversation",
+      "status": "CASCADE_RUN_STATUS_IDLE",
+      "workspaces": [
+        { "workspaceFolderAbsoluteUri": "file:///C:/synthetic/Antigravity%20Workspace%20%E6%B8%AC%E8%A9%A6", "repository": {} }
+      ],
+      "waitingSteps": [
+        {
+          "stepIndex": 3,
+          "step": {
+            "status": "CORTEX_STEP_STATUS_WAITING",
+            "metadata": {
+              "executionId": "request-1",
+              "sourceTrajectoryStepInfo": {
+                "cascadeId": "session-1",
+                "trajectoryId": "trajectory-fixture",
+                "stepIndex": 3
+              }
+            },
+            "requestedInteraction": {
+              "permission": {
+                "actionDescription": "Run a fixture command",
+                "resource": {
+                  "action": "run_command",
+                  "target": "fixture-antigravity-command"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -50,8 +50,12 @@ fn the_snapshot_orders_surface_changes_and_serializes_the_settings_issue() {
     snapshot.set_surface(Surface::Panel);
     assert_eq!((snapshot.revision, snapshot.surface), (1, Surface::Panel));
     snapshot.set_surface(Surface::Strip);
+    let mut serialized = serde_json::to_value(snapshot).unwrap();
+    let inbox = serialized.as_object_mut().unwrap().remove("inbox").unwrap();
+    assert_eq!(inbox["adapters"].as_array().unwrap().len(), 4);
+    assert_eq!(inbox["sessions"], json!([]));
     assert_eq!(
-        serde_json::to_value(snapshot).unwrap(),
+        serialized,
         json!({
             "revision": 2,
             "surface": "strip",

@@ -6,6 +6,11 @@ declare module 'react' {
     readonly [element]: true;
   }
   export type ReactNode = ReactElement | string | null;
+  export function createElement<P extends object>(
+    type: (props: P) => ReactNode,
+    props: P,
+    ...children: ReactNode[]
+  ): ReactElement;
   export function createElement(
     type: string | typeof Fragment | (() => ReactNode),
     props?: Record<string, unknown> | null,

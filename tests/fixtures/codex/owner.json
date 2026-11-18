@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "desktopVersion": "26.1111.2228.0",
+  "engineVersion": "0.169.0-alpha.11.1",
+  "handledByClientId": "desktop-owner-1",
+  "conversationId": "session-1",
+  "liveRequest": {
+    "id": "request-1",
+    "method": "item/commandExecution/requestApproval",
+    "params": {
+      "threadId": "session-1",
+      "turnId": "turn-1",
+      "itemId": "command-1",
+      "command": "Write-Output 'synthetic approval'",
+      "availableDecisions": ["accept", "acceptWithExecpolicyAmendment", "cancel"]
+    }
+  }
+}

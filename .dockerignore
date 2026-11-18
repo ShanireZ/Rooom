@@ -5,6 +5,8 @@
 !crates/
 !crates/rooom-core/
 !crates/rooom-core/**
+!crates/rooom-clients/
+!crates/rooom-clients/**
 !crates/rooom-platform/
 !crates/rooom-platform/Cargo.toml
 !crates/rooom-platform/src/
@@ -12,3 +14,6 @@
 !src-tauri/
 !src-tauri/Cargo.toml
 !src-tauri/build.rs
+!tests/
+!tests/fixtures/
+!tests/fixtures/**

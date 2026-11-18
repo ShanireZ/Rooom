@@ -7,6 +7,9 @@
     "allow-close-panel",
     "allow-focus-panel",
     "allow-toggle-pin",
+    "allow-send-message",
+    "allow-answer-request",
+    "allow-open-request-session",
     "core:event:allow-listen",
     "core:event:allow-unlisten"
   ]

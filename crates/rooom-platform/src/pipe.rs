@@ -29,6 +29,10 @@ use windows_sys::Win32::System::Threading::{
     GetCurrentProcess, OpenProcess, OpenProcessToken, PROCESS_QUERY_LIMITED_INFORMATION,
 };
 
+#[cfg(feature = "adapter-runtime")]
+#[path = "adapters/hook_ipc.rs"]
+pub mod hook;
+
 const VERSION: u8 = 1;
 const ACK: u8 = 6;
 const EXCHANGE: Duration = Duration::from_millis(1500);
@@ -68,8 +72,34 @@ impl Scope {
         self.session
     }
 
+    #[cfg(feature = "adapter-runtime")]
+    pub(crate) fn sid(&self) -> &str {
+        &self.sid
+    }
+
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn owns_process(&self, pid: u32) -> io::Result<bool> {
+        let mut session = 0;
+        checked(unsafe { ProcessIdToSessionId(pid, &mut session) })?;
+        if session != self.session {
+            return Ok(false);
+        }
+        let process = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };
+        if process.is_null() {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(process_sid(OwnedHandle(process).0)? == self.sid)
+    }
+
+    pub fn verify_process(&self, pid: u32) -> io::Result<()> {
+        if self.owns_process(pid)? {
+            Ok(())
+        } else {
+            Err(io::ErrorKind::PermissionDenied.into())
+        }
     }
 
     pub fn request(&self, action: Action) -> io::Result<Receipt> {

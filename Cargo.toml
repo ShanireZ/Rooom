@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/rooom-core", "crates/rooom-platform", "src-tauri"]
+members = ["crates/rooom-core", "crates/rooom-clients", "crates/rooom-platform", "src-tauri"]
 resolver = "3"
 
 [workspace.package]

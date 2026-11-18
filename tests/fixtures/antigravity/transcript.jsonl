@@ -1,0 +1,4 @@
+{"type":"SYSTEM_MESSAGE","source":"SYSTEM","status":"DONE","step_index":0,"content":"Synthetic system context."}
+{"type":"USER_INPUT","source":"USER_EXPLICIT","status":"DONE","step_index":1,"content":"<USER_REQUEST>Review the synthetic results.</USER_REQUEST>\n<ADDITIONAL_METADATA>Synthetic metadata.</ADDITIONAL_METADATA>"}
+{"type":"PLANNER_RESPONSE","source":"MODEL","status":"DONE","step_index":2,"thinking":"Synthetic private reasoning.","tool_calls":[{"name":"fixture_tool"}]}
+{"type":"PLANNER_RESPONSE","source":"MODEL","status":"DONE","step_index":3,"content":"The synthetic results match."}
